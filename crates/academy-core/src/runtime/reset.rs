@@ -52,7 +52,14 @@ REVOKE ALL ON TABLE academy_runtime.reset_operations FROM PUBLIC;",
         if !valid {
             return Err("Reset journal ownership is invalid; database copies were kept".into());
         }
+        admin.batch_execute("CREATE TABLE IF NOT EXISTS academy_runtime.lab_generations (database_name text PRIMARY KEY, database_oid oid NOT NULL, generation uuid NOT NULL); REVOKE ALL ON TABLE academy_runtime.lab_generations FROM PUBLIC;").await.map_err(|e|e.to_string())?;
+        let valid: bool = admin.query_one("SELECT c.relowner=r.oid AND c.relkind='r' FROM pg_namespace n JOIN pg_class c ON c.relnamespace=n.oid JOIN pg_roles r ON r.rolname='academy_admin' WHERE n.nspname='academy_runtime' AND c.relname='lab_generations'",&[]).await.map_err(|e|e.to_string())?.get(0);
+        if !valid {
+            return Err("Lab generation ownership is invalid; database copies were kept".into());
+        }
         self.recover_resets().await?;
+        // Migrate legacy or interrupted allocations once; never rotate a live generation on restart.
+        admin.execute("INSERT INTO academy_runtime.lab_generations(database_name,database_oid,generation) SELECT d.datname,d.oid,gen_random_uuid() FROM pg_database d JOIN pg_roles r ON r.oid=d.datdba WHERE r.rolname='academy_admin' AND d.datname ~ '^lab_[0-9]{2}_[0-9]{2}$' ON CONFLICT(database_name) DO UPDATE SET database_oid=excluded.database_oid,generation=excluded.generation WHERE lab_generations.database_oid<>excluded.database_oid",&[]).await.map_err(|e|e.to_string())?;
         Ok(())
     }
 
@@ -101,6 +108,8 @@ REVOKE ALL ON TABLE academy_runtime.reset_operations FROM PUBLIC;",
         admin.execute("SELECT pg_terminate_backend(pid,2000) FROM pg_stat_activity WHERE datname=ANY($1) AND pid<>pg_backend_pid()",&[&names.as_slice()]).await.map_err(|e|e.to_string())?;
         let renamed: Result<()> = async {
             admin.batch_execute(&format!("BEGIN; ALTER DATABASE {} RENAME TO {}; ALTER DATABASE {} RENAME TO {};",operation.database,operation.retired,operation.replacement,operation.database)).await.map_err(|e|e.to_string())?;
+            let generation = operation.replacement.strip_prefix("reset_").unwrap();
+            admin.execute("INSERT INTO academy_runtime.lab_generations(database_name,database_oid,generation) VALUES ($1,$2,$3::text::uuid) ON CONFLICT(database_name) DO UPDATE SET database_oid=excluded.database_oid,generation=excluded.generation",&[&operation.database,&operation.new_oid,&generation]).await.map_err(|e|e.to_string())?;
             let updated=admin.execute("UPDATE academy_runtime.reset_operations SET committed=true WHERE database_name=$1 AND old_oid=$2 AND new_oid=$3 AND NOT committed",&[&operation.database,&operation.old_oid,&operation.new_oid]).await.map_err(|e|e.to_string())?;
             if updated != 1 { return Err("Reset journal changed during promotion; database copies were kept".into()); }
             // Catalog names and durable outcome commit together, including a lost response.

@@ -161,8 +161,12 @@ impl Cluster {
         Ok(client)
     }
     pub(crate) async fn connection_identity(&self, client: &Client) -> Result<String> {
-        let oid:u32 = client.query_one("SELECT oid FROM pg_catalog.pg_database WHERE datname=pg_catalog.current_database()",&[]).await.map_err(|e|e.to_string())?.get(0);
-        Ok(format!("{}:{oid}", self.system_identifier))
+        let row = client.query_one("SELECT datname,oid FROM pg_catalog.pg_database WHERE datname=pg_catalog.current_database()",&[]).await.map_err(|e|e.to_string())?;
+        let database: String = row.get(0);
+        let oid: u32 = row.get(1);
+        let admin = self.connect("postgres", "academy_admin").await?;
+        let generation: String = admin.query_one("SELECT g.generation::text FROM academy_runtime.lab_generations g JOIN pg_database d ON d.datname=g.database_name AND d.oid=g.database_oid JOIN pg_roles r ON r.oid=d.datdba WHERE g.database_name=$1 AND g.database_oid=$2 AND r.rolname='academy_admin'",&[&database,&oid]).await.map_err(|e|format!("Could not confirm the measured lab generation: {e}"))?.get(0);
+        Ok(format!("{}:{oid}:{generation}", self.system_identifier))
     }
     pub(crate) async fn lab_identities(
         &self,
@@ -171,7 +175,7 @@ impl Cluster {
         let admin = self.connect("postgres", "academy_admin").await?;
         let rows = admin
             .query(
-                "SELECT datname,oid FROM pg_catalog.pg_database WHERE datname=ANY($1)",
+                "SELECT d.datname,d.oid,g.generation::text FROM pg_catalog.pg_database d JOIN academy_runtime.lab_generations g ON g.database_name=d.datname AND g.database_oid=d.oid JOIN pg_roles r ON r.oid=d.datdba WHERE d.datname=ANY($1) AND r.rolname='academy_admin'",
                 &[&databases],
             )
             .await
@@ -181,7 +185,11 @@ impl Cluster {
             .map(|row| {
                 let database: String = row.get(0);
                 let oid: u32 = row.get(1);
-                (database, format!("{}:{oid}", self.system_identifier))
+                let generation: String = row.get(2);
+                (
+                    database,
+                    format!("{}:{oid}:{generation}", self.system_identifier),
+                )
             })
             .collect())
     }
@@ -237,7 +245,14 @@ impl Cluster {
             .batch_execute(&format!("CREATE DATABASE {database}{oid_clause};"))
             .await
             .map_err(|e| e.to_string())?;
-        if let Err(error) = self.seed(database, role, fixture, setup).await {
+        let initialized: Result<()> = async {
+            self.seed(database, role, fixture, setup).await?;
+            if database.starts_with("lab_") {
+                admin.execute("INSERT INTO academy_runtime.lab_generations(database_name,database_oid,generation) SELECT datname,oid,gen_random_uuid() FROM pg_database WHERE datname=$1 ON CONFLICT(database_name) DO UPDATE SET database_oid=excluded.database_oid,generation=excluded.generation",&[&database]).await.map_err(|e|e.to_string())?;
+            }
+            Ok(())
+        }.await;
+        if let Err(error) = initialized {
             self.drop_database(database).await.map_err(|cleanup| {
                 format!("Lab setup failed: {error}; cleanup failed: {cleanup}")
             })?;
@@ -284,6 +299,14 @@ impl Cluster {
     }
     pub(crate) async fn drop_database(&self, database: &str) -> Result<()> {
         let admin = self.connect("postgres", "academy_admin").await?;
+        // Invalidate before nontransactional deletion, including a crash before later OID reuse.
+        admin
+            .execute(
+                "DELETE FROM academy_runtime.lab_generations WHERE database_name=$1",
+                &[&database],
+            )
+            .await
+            .map_err(|e| e.to_string())?;
         admin.execute("SELECT pg_terminate_backend(pid,2000) FROM pg_stat_activity WHERE datname=$1 AND pid<>pg_backend_pid()", &[&database]).await.map_err(|e|e.to_string())?;
         admin
             .batch_execute(&format!("DROP DATABASE IF EXISTS {database};"))
@@ -319,6 +342,76 @@ impl Drop for Cluster {
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[tokio::test]
+    async fn reset_promotion_reusing_a_historical_oid_rotates_the_generation() {
+        let home = tempfile::tempdir().unwrap();
+        let runtime = std::env::var_os("ACADEMY_POSTGRES")
+            .map(PathBuf::from)
+            .unwrap_or_else(|| "/Applications/Postgres.app/Contents/Versions/18".into());
+        let cluster = Cluster::start(home.path(), &runtime).await.unwrap();
+        cluster
+            .create_lab("lab_01_01", "student_01_01", Fixture::Orders, 0)
+            .await
+            .unwrap();
+        let names = vec!["lab_01_01".to_owned()];
+        let first = cluster.lab_identities(&names).await.unwrap()["lab_01_01"].clone();
+        let admin = cluster.connect("postgres", "academy_admin").await.unwrap();
+        let original_oid: u32 = admin
+            .query_one("SELECT oid FROM pg_database WHERE datname='lab_01_01'", &[])
+            .await
+            .unwrap()
+            .get(0);
+        cluster
+            .replace_lab("lab_01_01", "student_01_01", Fixture::Orders, 0)
+            .await
+            .unwrap();
+        let second = cluster.lab_identities(&names).await.unwrap()["lab_01_01"].clone();
+        assert_ne!(first, second);
+        let mut operation = cluster
+            .reserve_reset("lab_01_01", "student_01_01")
+            .await
+            .unwrap();
+        // Force the otherwise rare allocator collision using the real promotion path.
+        admin.execute("UPDATE academy_runtime.reset_operations SET new_oid=$1 WHERE database_name='lab_01_01'", &[&original_oid]).await.unwrap();
+        operation.new_oid = original_oid;
+        cluster
+            .create_database(
+                &operation.replacement,
+                "student_01_01",
+                Fixture::Orders,
+                &Fixture::Orders.sql(0).unwrap(),
+                Some(original_oid),
+            )
+            .await
+            .unwrap();
+        cluster.promote_reset(&operation).await.unwrap();
+        cluster.recover_resets().await.unwrap();
+        let third = cluster.lab_identities(&names).await.unwrap()["lab_01_01"].clone();
+        assert_ne!(
+            third, first,
+            "Actual promotion must not reuse the historical proof identity"
+        );
+        let learner = cluster.connect("lab_01_01", "student_01_01").await.unwrap();
+        assert_eq!(cluster.connection_identity(&learner).await.unwrap(), third);
+        assert_eq!(
+            admin
+                .query_one("SELECT oid FROM pg_database WHERE datname='lab_01_01'", &[])
+                .await
+                .unwrap()
+                .get::<_, u32>(0),
+            original_oid
+        );
+        drop(learner);
+        drop(admin);
+        cluster.stop().unwrap();
+        drop(cluster);
+        let again = Cluster::start(home.path(), &runtime).await.unwrap();
+        assert_eq!(
+            again.lab_identities(&names).await.unwrap()["lab_01_01"],
+            third
+        );
+        again.stop().unwrap();
+    }
     #[tokio::test]
     async fn resource_post_staging_rejection_preserves_old_lab_and_connection() {
         let home = tempfile::tempdir().unwrap();

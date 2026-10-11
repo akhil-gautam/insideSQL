@@ -8,6 +8,8 @@
 
 **Tech stack:** Existing Rust/Tokio/tokio-postgres/UUID, PostgreSQL18 and SQLite progress. No new dependencies or webview interfaces.
 
+**Review correction:** Fresh local review found historical explicit-OID reuse can resurrect retained proof. The single fix pass adds durable administrator-owned per-lab UUID generations to actual cluster/OID binding, registered on ordinary creation and committed atomically with Reset promotion. Legacy two-field analysis requires Analyze again; scripts and passes remain preserved. This is the ledgered correction to the original OID-only assumption.
+
 **Spec:** docs/PLAN.md, including full84/504 delivery and phase gates.
 
 ## Constraints
@@ -35,6 +37,6 @@ Interfaces: Cluster::replace_lab(database, role, fixture, seed) changes from Res
 - [x] Implement reserve/stage/promote/reconcile in a focused runtime child module. Reserve safe canonical lab names and generated UUID temporary names with a free OID >=16384; INSERT intent before nontransactional CREATE DATABASE WITH OID. Require exact catalog OIDs/owner and matching journal shape before promotion or cleanup. Use BEGIN plus both ALTER DATABASE RENAMEs and committed=true then COMMIT. Reconnect to read durable outcome on errors; leave ambiguous state intact. Expected GREEN: all six real crash states recover without lost scripts or unsafe deletion.
 - [x] Add real regression cases for wrong OID/owner, unsafe journal data, unchanged prefix lookalikes, restricted journal access, rejected setup/promotion and cleanup retry. Expected RED then GREEN at each newly found missing guard; existing disk/identity tests remain passing.
 - [x] Run full real PostgreSQL/core, frontend and browser suites, production/native --no-bundle build. Whole-task command: ACADEMY_POSTGRES=/Users/akhilgautam/projects/personal/sql-internals-academy/src-tauri/resources/postgres cargo test -p academy-core -- --test-threads=1. Expected all pass; report any existing intermittent graph failure explicitly. Stop only owned previews.
-- [ ] Commit; obtain one fresh read-only local review, disposition every finding/ruling, fix material findings once with RED→GREEN evidence and rerun required suites. Record external Claude approval block honestly. Expected clean increment; full course and phase acceptance remain active.
+- [x] Commit; obtain one fresh read-only local review, disposition every finding/ruling, fix material findings once with RED→GREEN evidence and rerun required suites. Record external Claude approval block honestly. Expected clean increment; full course and phase acceptance remain active.
 
 Primary sources: [CREATE DATABASE OID/nontransactional allocation](https://www.postgresql.org/docs/18/sql-createdatabase.html), [ALTER DATABASE](https://www.postgresql.org/docs/18/sql-alterdatabase.html). Actual supported behavior is verified against the pinned bundled runtime.

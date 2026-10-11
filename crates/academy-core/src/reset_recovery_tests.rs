@@ -91,7 +91,7 @@ async fn reset_crash_worker() {
             .await
             .unwrap();
         if phase != "renaming" {
-            let mut sql=format!("ALTER DATABASE {REPLACEMENT} RENAME TO lab_01_01; UPDATE academy_runtime.reset_operations SET committed=true WHERE database_name='lab_01_01'; COMMIT;");
+            let mut sql=format!("ALTER DATABASE {REPLACEMENT} RENAME TO lab_01_01; INSERT INTO academy_runtime.lab_generations(database_name,database_oid,generation) VALUES ('lab_01_01',{NEW_OID},'01234567-89ab-cdef-0123-456789abcdef') ON CONFLICT(database_name) DO UPDATE SET database_oid=excluded.database_oid,generation=excluded.generation; UPDATE academy_runtime.reset_operations SET committed=true WHERE database_name='lab_01_01'; COMMIT;");
             if phase == "committed" {
                 sql.push_str("SELECT pg_terminate_backend(pg_backend_pid());");
                 assert!(
@@ -233,6 +233,8 @@ async fn reset_recovery_preserves_unjournaled_lookalikes_and_denies_learner_acce
     for sql in [
         "SELECT * FROM academy_runtime.reset_operations",
         "DELETE FROM academy_runtime.reset_operations",
+        "SELECT * FROM academy_runtime.lab_generations",
+        "DELETE FROM academy_runtime.lab_generations",
         "CREATE TABLE academy_runtime.forged (id int)",
     ] {
         let error = learner.batch_execute(sql).await.unwrap_err();
