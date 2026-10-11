@@ -1,5 +1,7 @@
 # SQL Internals Academy
 
+Lab resources opens an actual storage/settings snapshot for the current exercise. The owned runtime requires 512 MiB of available disk space before initialization, lab allocation, execution and Reset, and limits temporary spills to 128MB per PostgreSQL process. Reset prepares a fresh baseline before replacing the old database. These are preflight and spill safeguards, not total-memory quotas or hardware calibration; larger profiles, continuous monitoring and recovery/release checks remain required.
+
 A native Tauri/Rust learning workbench with real, disposable PostgreSQL labs, Theatre.js mechanism scenes and Remotion chapter videos.
 
 The complete approved scope is [docs/PLAN.md](docs/PLAN.md). Verified delivery status is [docs/PROGRESS.md](docs/PROGRESS.md). The full course is **not complete**: chapter 1 is delivered, chapters 2–10 have unpublished authored drafts and tested SQL exercises, and later chapters remain to author.

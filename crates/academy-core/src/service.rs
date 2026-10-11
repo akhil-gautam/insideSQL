@@ -144,6 +144,22 @@ impl Academy {
     pub fn course(&self) -> Value {
         json!({"chapter":self.chapters[0],"chapters":self.chapters,"fixtures":fixtures::catalog(),"planned_chapters":84,"planned_exercises":504,"available_chapters":self.chapters.iter().filter(|c|c.published).count(),"server_version":"18.3"})
     }
+    pub async fn resources(&self, id: &str) -> Result<Value> {
+        let _guard = self.lifecycle.read().await;
+        let (db, role) = self.names(id)?;
+        self.ensure_lab(id).await?;
+        let client = self.cluster.connect(&db, &role).await?;
+        let row = client.query_one("SELECT pg_database_size(current_database()),current_setting('work_mem'),current_setting('shared_buffers'),current_setting('temp_file_limit')", &[])
+            .await.map_err(|e| e.to_string())?;
+        Ok(json!({
+            "database_bytes":row.get::<_,i64>(0),
+            "available_disk_bytes":crate::resources::available_disk_bytes(&self.cluster.root)?,
+            "minimum_free_disk_bytes":self.cluster.minimum_free_disk_bytes,
+            "work_mem":row.get::<_,String>(1),
+            "shared_buffers":row.get::<_,String>(2),
+            "temp_file_limit":row.get::<_,String>(3)
+        }))
+    }
     pub fn progress(&self) -> Result<Value> {
         let mut result = serde_json::Map::new();
         for e in self.chapters.iter().flat_map(|c| &c.exercises) {
@@ -212,6 +228,7 @@ impl Academy {
             return Err("Write a query before submitting".into());
         }
         let (db, role) = self.names(&exercise.id)?;
+        self.cluster.require_disk_space()?;
         self.ensure_lab(&exercise.id).await?;
         let client = self.cluster.connect(&db, &role).await?;
         let rollback =
@@ -273,6 +290,7 @@ impl Academy {
             });
         }
         let fixture = self.fixture(&e.id)?;
+        self.cluster.require_disk_space()?;
         let mutation = !fixture.writable_tables().is_empty();
         let mut passed = 0;
         for seed in 0..3 {
@@ -359,11 +377,15 @@ impl Academy {
     pub async fn reset(&self, id: &str) -> Result<()> {
         let _guard = self.lifecycle.write().await;
         let (db, role) = self.names(id)?;
-        self.cluster.drop_lab(&db, &role).await?;
-        self.cluster
-            .create_lab(&db, &role, self.fixture(id)?, 0)
+        self.cluster.require_disk_space()?;
+        let retired = self
+            .cluster
+            .replace_lab(&db, &role, self.fixture(id)?, 0)
             .await?;
-        self.store.clear_analysis(id)
+        let cleared = self.store.clear_analysis(id);
+        let cleaned = self.cluster.drop_database(&retired).await;
+        cleared?;
+        cleaned
     }
     pub async fn shutdown(&self) -> Result<()> {
         let _guard = self.lifecycle.write().await;
@@ -541,6 +563,10 @@ mod join_tests;
 #[cfg(test)]
 #[path = "sort_aggregate_tests.rs"]
 mod sort_aggregate_tests;
+
+#[cfg(test)]
+#[path = "resource_tests.rs"]
+mod resource_tests;
 
 #[cfg(test)]
 mod tests {

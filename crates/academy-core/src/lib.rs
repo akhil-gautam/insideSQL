@@ -1,5 +1,6 @@
 mod fixtures;
 mod progress;
+mod resources;
 mod runtime;
 mod service;
 pub use progress::Progress;

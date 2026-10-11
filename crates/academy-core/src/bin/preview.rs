@@ -17,6 +17,10 @@ async fn api(
         match command.as_str() {
             "course" => Ok(app.course()),
             "progress" => app.progress(),
+            "resources" => {
+                app.resources(input["id"].as_str().ok_or("Missing exercise id")?)
+                    .await
+            }
             "save" => {
                 app.save(
                     input["id"].as_str().ok_or("Missing exercise id")?,

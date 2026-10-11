@@ -8,4 +8,6 @@ The approved scope is 84 chapters and 504 required exercises. Chapter 1 is deliv
 
 The journey's charcoal/copper mechanical world is scoped to the lesson illustration and video. The surrounding slate-blue/white workbench stays focused on writing, checking and inspecting SQL. The scene is an illustrated mechanism, not a measured executor trace.
 
+The workbench has a collapsed Lab resources disclosure with actual database storage, available filesystem space and restricted-connection settings. Startup/allocation/execution/reset preflights require 512 MiB available; PostgreSQL spills are limited to 128MB per process. Reset stages a fresh baseline before transactional name promotion. These safeguards do not establish total memory usage, reserved disk capacity, hardware calibration or process-crash recovery. Native filesystem measurement currently supports macOS/Linux; Windows remains a release gate.
+
 Authoritative scope: [docs/PLAN.md](docs/PLAN.md). Verification and remaining work: [docs/PROGRESS.md](docs/PROGRESS.md). Development and learning contract: [README.md](README.md).

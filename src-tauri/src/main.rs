@@ -22,6 +22,10 @@ fn progress(app: State<AppState>) -> Result<Value, String> {
     app.progress()
 }
 #[tauri::command]
+async fn resources(app: State<'_, AppState>, id: String) -> Result<Value, String> {
+    app.resources(&id).await
+}
+#[tauri::command]
 fn save(app: State<AppState>, id: String, sql: String) -> Result<(), String> {
     app.save(&id, &sql)
 }
@@ -62,7 +66,7 @@ fn main() {
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![
-            course, progress, solution, run, check, cancel, reset, save
+            course, progress, solution, run, check, cancel, reset, save, resources
         ])
         .build(tauri::generate_context!())
         .expect("Could not initialize SQL Internals Academy")

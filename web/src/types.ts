@@ -7,3 +7,4 @@ export type QueryResult={columns:string[];column_types:number[];rows:(string|nul
 export type Plan={Plan:PlanNode;'Planning Time'?:number;'Execution Time'?:number};
 export type PlanNode={'Node Type':string;Plans?:PlanNode[];[key:string]:unknown};
 export type CheckResult={passed:boolean;message:string;variants_passed:number;variants_total:number};
+export type ResourceSnapshot={database_bytes:number;available_disk_bytes:number;minimum_free_disk_bytes:number;work_mem:string;shared_buffers:string;temp_file_limit:string};

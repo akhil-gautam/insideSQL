@@ -1,0 +1,37 @@
+import {test,expect} from '@playwright/test';
+import {mkdir} from 'node:fs/promises';
+
+test('real lab resources are scoped, refresh on reopening and leave SQL usable after an inspection error',async({page})=>{
+ const requests:string[]=[];
+ page.on('request',request=>{if(request.url().endsWith('/api/resources'))requests.push(request.postData()||'');});
+ await page.goto('/');
+ const panel=page.locator('.lab-resources');const summary=panel.locator('summary');
+ await expect(summary).toHaveText('Lab resources');
+ expect(requests).toEqual([]);
+ await summary.click();
+ for(const value of ['4MB','64MB','128MB','512.0 MiB'])await expect(panel.getByText(value,{exact:true})).toBeVisible();
+ await expect(panel.getByText('Database storage excludes WAL, logs and temporary files.')).toBeVisible();
+ await expect(panel.getByText('Work memory is per operation; spill allowance is per PostgreSQL process.')).toBeVisible();
+ const pairs=panel.locator('dl>div');
+ expect(parseFloat(await pairs.filter({hasText:'Database storage'}).locator('dd').innerText())).toBeGreaterThan(0);
+ expect(parseFloat(await pairs.filter({hasText:'Available disk space'}).locator('dd').innerText())).toBeGreaterThan(512);
+ expect(requests).toEqual([JSON.stringify({id:'01-01'})]);
+ await mkdir('.impeccable/review',{recursive:true});
+ await panel.screenshot({path:'.impeccable/review/resources-desktop.png'});
+ await page.setViewportSize({width:390,height:844});
+ await panel.screenshot({path:'.impeccable/review/resources-mobile.png'});
+ expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);
+ await summary.click();await expect(panel.getByText('4MB',{exact:true})).toHaveCount(0);
+ await summary.click();await expect(panel.getByText('4MB',{exact:true})).toBeVisible();
+ expect(requests).toHaveLength(2);
+ await page.route('**/api/resources',route=>route.fulfill({status:503,contentType:'application/json',body:JSON.stringify({error:'Disk measurement unavailable'})}));
+ await summary.click();await summary.click();
+ await expect(panel.getByRole('alert')).toContainText('Disk measurement unavailable');
+ await page.getByRole('textbox',{name:'SQL query'}).fill('SELECT 1 AS intact');
+ await page.getByRole('button',{name:'Run',exact:true}).click();
+ await expect(page.locator('.result-table th')).toHaveText('intact');
+ await expect(page.locator('.result-table td')).toHaveText('1');
+ await page.unroute('**/api/resources');await summary.click();await summary.click();
+ await expect(panel.getByText('4MB',{exact:true})).toBeVisible();
+ await expect(panel.getByRole('alert')).toHaveCount(0);
+});
