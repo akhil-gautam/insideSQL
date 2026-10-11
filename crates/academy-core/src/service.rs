@@ -1,6 +1,8 @@
 use crate::{
-    equivalent, runtime::Cluster, CheckResult, Progress, QueryError, QueryResult, Result,
-    RunRequest,
+    equivalent,
+    fixtures::{self, Fixture},
+    runtime::Cluster,
+    CheckResult, Progress, QueryError, QueryResult, Result, RunRequest,
 };
 use futures_util::TryStreamExt;
 use serde::{Deserialize, Serialize};
@@ -30,6 +32,8 @@ pub struct Exercise {
 #[derive(Clone, Deserialize, Serialize)]
 pub struct Chapter {
     pub id: String,
+    #[serde(default)]
+    pub fixture: Fixture,
     #[serde(default)]
     pub published: bool,
     pub title: String,
@@ -64,6 +68,7 @@ impl Academy {
         let chapters: Vec<Chapter> = [
             include_str!("../../../course/chapter01.json"),
             include_str!("../../../course/chapter02.json"),
+            include_str!("../../../course/chapter03.json"),
         ]
         .into_iter()
         .map(serde_json::from_str)
@@ -89,10 +94,11 @@ impl Academy {
             if let Some(exercise) = chapter.exercises.iter().find(|e| e.id == id) {
                 if !chapter.published
                     || self.chapters[..index].iter().any(|prior| {
-                        prior
-                            .exercises
-                            .iter()
-                            .any(|e| !self.store.passed(&e.id, &e.revision).unwrap_or(false))
+                        !prior.published
+                            || prior
+                                .exercises
+                                .iter()
+                                .any(|e| !self.store.passed(&e.id, &e.revision).unwrap_or(false))
                     })
                 {
                     return Err("Pass every required exercise in the preceding chapters to unlock this chapter".into());
@@ -106,6 +112,15 @@ impl Academy {
         self.exercise(id)?;
         let suffix = id.replace('-', "_");
         Ok((format!("lab_{suffix}"), format!("student_{suffix}")))
+    }
+    fn fixture(&self, id: &str) -> Result<Fixture> {
+        self.exercise(id)?;
+        Ok(self
+            .chapters
+            .iter()
+            .find(|c| c.exercises.iter().any(|e| e.id == id))
+            .unwrap()
+            .fixture)
     }
     async fn ensure_lab(&self, id: &str) -> Result<()> {
         let _setup = self.lab_setup.lock().await;
@@ -122,11 +137,13 @@ impl Academy {
         if exists {
             self.cluster.refresh_role(&role).await
         } else {
-            self.cluster.create_lab(&db, &role, 0).await
+            self.cluster
+                .create_lab(&db, &role, self.fixture(id)?, 0)
+                .await
         }
     }
     pub fn course(&self) -> Value {
-        json!({"chapter":self.chapters[0],"chapters":self.chapters,"planned_chapters":84,"planned_exercises":504,"available_chapters":self.chapters.iter().filter(|c|c.published).count(),"server_version":"18.3"})
+        json!({"chapter":self.chapters[0],"chapters":self.chapters,"fixtures":fixtures::catalog(),"planned_chapters":84,"planned_exercises":504,"available_chapters":self.chapters.iter().filter(|c|c.published).count(),"server_version":"18.3"})
     }
     pub fn progress(&self) -> Result<Value> {
         let mut result = serde_json::Map::new();
@@ -224,7 +241,9 @@ impl Academy {
             let suffix = uuid::Uuid::new_v4().simple().to_string();
             let db = format!("grade_{suffix}");
             let role = format!("learner_{suffix}");
-            self.cluster.create_lab(&db, &role, seed).await?;
+            self.cluster
+                .create_lab(&db, &role, self.fixture(&e.id)?, seed)
+                .await?;
             let checked: Result<bool> = async {
                 let learner = self.cluster.connect(&db, &role).await?;
                 let actual = execute_controlled(
@@ -272,7 +291,9 @@ impl Academy {
         let _guard = self.lifecycle.write().await;
         let (db, role) = self.names(id)?;
         self.cluster.drop_lab(&db, &role).await?;
-        self.cluster.create_lab(&db, &role, 0).await
+        self.cluster
+            .create_lab(&db, &role, self.fixture(id)?, 0)
+            .await
     }
     pub async fn shutdown(&self) -> Result<()> {
         let _guard = self.lifecycle.write().await;
@@ -309,9 +330,9 @@ fn validate_chapters(chapters: &[Chapter]) -> Result<()> {
     }
     for (index, chapter) in chapters.iter().enumerate() {
         let id = format!("{:02}", index + 1);
-        if chapter.id != id || chapter.exercises.len() < 5 {
+        if chapter.id != id || chapter.exercises.len() != 6 {
             return Err(format!(
-                "Chapter {id} has invalid identifiers or too few exercises"
+                "Chapter {id} must have valid identifiers and exactly six exercises"
             ));
         }
         for (position, exercise) in chapter.exercises.iter().enumerate() {
@@ -427,6 +448,127 @@ async fn execute(client: &Client, sql: &str, mode: &str, limit: usize) -> Result
 mod tests {
     use super::*;
     #[tokio::test]
+    async fn joins_chapter_uses_commerce_for_visible_grading_and_reset_labs() {
+        let home = tempfile::tempdir().unwrap();
+        let runtime = std::env::var_os("ACADEMY_POSTGRES")
+            .map(std::path::PathBuf::from)
+            .unwrap_or_else(|| "/Applications/Postgres.app/Contents/Versions/18".into());
+        let mut academy = Academy::start(home.path(), &runtime).await.unwrap();
+        assert!(
+            academy.chapters.get(2).is_some(),
+            "The joins chapter must be authored"
+        );
+        assert!(academy
+            .run(RunRequest {
+                exercise_id: "03-01".into(),
+                sql: "SELECT 1".into(),
+                mode: "run".into(),
+                run_id: uuid::Uuid::new_v4().to_string()
+            })
+            .await
+            .is_err());
+        for chapter in &mut academy.chapters[..2] {
+            chapter.published = true;
+            for e in &chapter.exercises {
+                academy.store.attempt(&e.id, "SELECT 1", "").unwrap();
+                academy.store.pass(&e.id, &e.revision).unwrap();
+            }
+        }
+        assert!(
+            academy.solution("03-01").is_err(),
+            "An unpublished chapter stays locked after all prior passes"
+        );
+        academy.chapters[2].published = true;
+        let request = |id: &str, sql: &str| RunRequest {
+            exercise_id: id.into(),
+            sql: sql.into(),
+            mode: "run".into(),
+            run_id: uuid::Uuid::new_v4().to_string(),
+        };
+        academy.chapters[1].published = false;
+        assert!(
+            academy.run(request("03-01", "SELECT 1")).await.is_err(),
+            "A withdrawn preceding chapter must lock downstream access even when old passes exist"
+        );
+        academy.chapters[1].published = true;
+        let sql = "SELECT (SELECT COUNT(*) FROM customers), (SELECT COUNT(*) FROM orders), (SELECT COUNT(*) FROM order_items), (SELECT COUNT(*) FROM payments)";
+        let counts = academy.run(request("03-01", sql)).await.unwrap();
+        assert!(
+            counts.error.is_none(),
+            "Commerce tables must exist in the visible lab"
+        );
+        assert_eq!(counts.rows[0][0].as_deref(), Some("52"));
+        assert_eq!(counts.rows[0][1].as_deref(), Some("310"));
+        let before = counts.rows;
+        academy.reset("03-01").await.unwrap();
+        assert_eq!(
+            academy.run(request("03-01", sql)).await.unwrap().rows,
+            before
+        );
+        let references = academy.chapters[2].exercises.clone();
+        let known: serde_json::Value =
+            serde_json::from_str(include_str!("../tests/fixtures/chapter03-baseline.json"))
+                .unwrap();
+        for e in references {
+            let mut actual = academy.run(request(&e.id, &e.solution_sql)).await.unwrap();
+            assert!(actual.error.is_none());
+            let upper = if e.id == "03-02" || e.id == "03-03" {
+                200
+            } else {
+                1000
+            };
+            actual
+                .rows
+                .retain(|row| row[0].as_deref().unwrap().parse::<i32>().unwrap() < upper);
+            let expected = QueryResult {
+                column_types: actual.column_types.clone(),
+                rows: serde_json::from_value(known[&e.id].clone()).unwrap(),
+                ..Default::default()
+            };
+            assert_eq!(
+                normalized(&actual),
+                normalized(&expected),
+                "Independent baseline oracle: {}",
+                e.id
+            );
+            let result = academy
+                .check(request(&e.id, &e.solution_sql))
+                .await
+                .unwrap();
+            assert!(result.passed, "{}: {}", e.id, result.message);
+        }
+        let wrong = [
+            ("03-02","SELECT c.id, o.id FROM customers c LEFT JOIN orders o ON o.customer_id=c.id WHERE o.status='paid' ORDER BY c.id,o.id"),
+            ("03-05","SELECT o.id FROM orders o WHERE o.id NOT IN (SELECT p.order_id FROM payments p WHERE p.status='captured') ORDER BY o.id"),
+            ("03-06","SELECT o.id, COALESCE(SUM(i.quantity*i.unit_price),0), COALESCE(SUM(p.amount),0) FROM orders o LEFT JOIN order_items i ON i.order_id=o.id LEFT JOIN payments p ON p.order_id=o.id AND p.status='captured' GROUP BY o.id ORDER BY o.id"),
+        ];
+        for (id, sql) in wrong {
+            assert!(
+                !academy.check(request(id, sql)).await.unwrap().passed,
+                "Common wrong query {id} must fail"
+            );
+        }
+        assert!(academy
+            .run(request(
+                "03-01",
+                "INSERT INTO customers VALUES (999,'Injected')"
+            ))
+            .await
+            .unwrap()
+            .error
+            .is_some());
+        assert!(academy
+            .run(request(
+                "03-01",
+                "CREATE TABLE arbitrary_table (id integer)"
+            ))
+            .await
+            .unwrap()
+            .error
+            .is_some());
+        academy.shutdown().await.unwrap();
+    }
+    #[tokio::test]
     async fn cancel_is_remembered_while_a_lab_is_still_being_prepared() {
         let home = tempfile::tempdir().unwrap();
         let runtime = std::env::var_os("ACADEMY_POSTGRES")
@@ -525,5 +667,15 @@ mod tests {
             vec![serde_json::from_str(include_str!("../../../course/chapter01.json")).unwrap()];
         chapters[0].exercises[0].id = "01-01; DROP DATABASE postgres".into();
         assert!(validate_chapters(&chapters).is_err());
+    }
+    #[test]
+    fn authored_chapters_require_exactly_six_exercises() {
+        let mut chapter: Chapter =
+            serde_json::from_str(include_str!("../../../course/chapter01.json")).unwrap();
+        chapter.exercises.pop();
+        assert!(
+            validate_chapters(&[chapter]).is_err(),
+            "Every chapter requires six questions for the 504-exercise contract"
+        );
     }
 }

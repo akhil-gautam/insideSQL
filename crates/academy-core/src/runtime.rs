@@ -1,4 +1,4 @@
-use crate::Result;
+use crate::{fixtures::Fixture, Result};
 use sha2::{Digest, Sha256};
 use std::{
     fs::{self, File},
@@ -135,14 +135,35 @@ impl Cluster {
         client.batch_execute("SET statement_timeout='8s'; SET lock_timeout='2s'; SET idle_in_transaction_session_timeout='10s'; SET timezone='UTC'; SET datestyle='ISO, YMD';").await.map_err(|e|e.to_string())?;
         Ok(client)
     }
-    pub async fn create_lab(&self, database: &str, role: &str, seed: u32) -> Result<()> {
+    pub async fn create_lab(
+        &self,
+        database: &str,
+        role: &str,
+        fixture: Fixture,
+        seed: u32,
+    ) -> Result<()> {
+        let setup = fixture.sql(seed)?;
         let admin = self.connect("postgres", "academy_admin").await?;
         admin.batch_execute(&format!("CREATE ROLE {role} LOGIN PASSWORD '{}' NOSUPERUSER NOCREATEDB NOCREATEROLE NOREPLICATION NOBYPASSRLS;",self.password_for(role))).await.map_err(|e|e.to_string())?;
-        admin
+        if let Err(error) = admin
             .batch_execute(&format!("CREATE DATABASE {database};"))
             .await
-            .map_err(|e| e.to_string())?;
-        self.seed(database, role, seed).await
+        {
+            admin
+                .batch_execute(&format!("DROP ROLE {role};"))
+                .await
+                .map_err(|cleanup| {
+                    format!("Lab creation failed: {error}; role cleanup failed: {cleanup}")
+                })?;
+            return Err(error.to_string());
+        }
+        if let Err(error) = self.seed(database, role, &setup).await {
+            self.drop_lab(database, role).await.map_err(|cleanup| {
+                format!("Lab setup failed: {error}; cleanup failed: {cleanup}")
+            })?;
+            return Err(error);
+        }
+        Ok(())
     }
     fn password_for(&self, role: &str) -> String {
         if role == "academy_admin" {
@@ -159,16 +180,9 @@ impl Cluster {
         admin.batch_execute(&format!("ALTER ROLE {role} PASSWORD '{}' NOSUPERUSER NOCREATEDB NOCREATEROLE NOREPLICATION NOBYPASSRLS;",self.password_for(role))).await.map_err(|e|e.to_string())?;
         Ok(())
     }
-    pub async fn seed(&self, database: &str, role: &str, seed: u32) -> Result<()> {
+    async fn seed(&self, database: &str, role: &str, setup: &str) -> Result<()> {
         let admin = self.connect(database, "academy_admin").await?;
-        admin.batch_execute(&format!("REVOKE ALL ON DATABASE {database} FROM PUBLIC; GRANT CONNECT ON DATABASE {database} TO {role}; REVOKE CREATE ON SCHEMA public FROM PUBLIC; CREATE TABLE orders (id integer PRIMARY KEY, customer_id integer NOT NULL, status text NOT NULL, total numeric(20,2), ordered_at timestamptz NOT NULL); INSERT INTO orders VALUES (1,101,'paid',125.50,'2026-01-01'),(2,102,'pending',49.00,'2026-01-02'),(3,101,'paid',80.00,'2026-01-03'),(4,103,'pending',120.00,'2026-01-04'),(5,104,'paid',240.00,'2026-01-05'),(6,102,'cancelled',60.00,'2026-01-06'),(7,105,'paid',100.00,'2026-01-07'),(8,106,'refunded',200.00,'2026-01-08'),(9,107,'pending',NULL,'2026-01-09'),(10,108,'cancelled',240.00,'2026-01-10'); GRANT USAGE ON SCHEMA public TO {role}; GRANT SELECT ON orders TO {role};")).await.map_err(|e|e.to_string())?;
-        if seed > 0 {
-            admin.batch_execute(&format!("INSERT INTO orders SELECT 1000+g,200+(g%7),CASE WHEN g%3=0 THEN 'paid' WHEN g%3=1 THEN 'pending' ELSE 'cancelled' END,CASE WHEN g%11=0 THEN NULL ELSE (g%5)*50.00 END,'2026-02-01'::timestamptz+g*interval '1 hour' FROM generate_series(1,{}) g;",seed*24)).await.map_err(|e|e.to_string())?;
-        }
-        admin
-            .batch_execute("ANALYZE orders;")
-            .await
-            .map_err(|e| e.to_string())?;
+        admin.batch_execute(&format!("REVOKE ALL ON DATABASE {database} FROM PUBLIC; GRANT CONNECT ON DATABASE {database} TO {role}; REVOKE CREATE ON SCHEMA public FROM PUBLIC; {setup} GRANT USAGE ON SCHEMA public TO {role}; GRANT SELECT ON ALL TABLES IN SCHEMA public TO {role};")).await.map_err(|e|e.to_string())?;
         Ok(())
     }
     pub async fn drop_lab(&self, database: &str, role: &str) -> Result<()> {
@@ -214,6 +228,64 @@ impl Drop for Cluster {
 mod tests {
     use super::*;
     #[tokio::test]
+    async fn failed_lab_creation_cleans_only_the_objects_it_created() {
+        let home = tempfile::tempdir().unwrap();
+        let runtime = std::env::var_os("ACADEMY_POSTGRES")
+            .map(PathBuf::from)
+            .unwrap_or_else(|| PathBuf::from("/Applications/Postgres.app/Contents/Versions/18"));
+        let cluster = Cluster::start(home.path(), &runtime).await.unwrap();
+        let admin = cluster.connect("postgres", "academy_admin").await.unwrap();
+        assert!(cluster
+            .create_lab("postgres", "failed_create", Fixture::Orders, 0)
+            .await
+            .is_err());
+        assert!(
+            !admin
+                .query_one(
+                    "SELECT EXISTS(SELECT FROM pg_roles WHERE rolname='failed_create')",
+                    &[]
+                )
+                .await
+                .unwrap()
+                .get::<_, bool>(0),
+            "Database-create failure must remove its new role"
+        );
+        assert!(
+            cluster.connect("postgres", "academy_admin").await.is_ok(),
+            "An existing database must be preserved"
+        );
+        let template = cluster.connect("template1", "academy_admin").await.unwrap();
+        template
+            .batch_execute("CREATE TABLE orders (id integer)")
+            .await
+            .unwrap();
+        drop(template);
+        for _ in 0..50 {
+            let active: bool = admin
+                .query_one(
+                    "SELECT EXISTS(SELECT FROM pg_stat_activity WHERE datname='template1')",
+                    &[],
+                )
+                .await
+                .unwrap()
+                .get(0);
+            if !active {
+                break;
+            }
+            tokio::time::sleep(Duration::from_millis(20)).await;
+        }
+        assert!(cluster
+            .create_lab("failed_seed", "failed_seed_student", Fixture::Orders, 0)
+            .await
+            .is_err());
+        let remaining:bool=admin.query_one("SELECT EXISTS(SELECT FROM pg_database WHERE datname='failed_seed') OR EXISTS(SELECT FROM pg_roles WHERE rolname='failed_seed_student')",&[]).await.unwrap().get(0);
+        assert!(
+            !remaining,
+            "Authored setup failure must remove its new database and role"
+        );
+        cluster.stop().unwrap();
+    }
+    #[tokio::test]
     async fn learner_credentials_do_not_reuse_the_admin_password() {
         let home = tempfile::tempdir().unwrap();
         let runtime = std::env::var_os("ACADEMY_POSTGRES")
@@ -221,7 +293,7 @@ mod tests {
             .unwrap_or_else(|| PathBuf::from("/Applications/Postgres.app/Contents/Versions/18"));
         let cluster = Cluster::start(home.path(), &runtime).await.unwrap();
         cluster
-            .create_lab("credential_lab", "credential_student", 0)
+            .create_lab("credential_lab", "credential_student", Fixture::Orders, 0)
             .await
             .unwrap();
         let mut config = Config::new();

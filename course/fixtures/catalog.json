@@ -1,0 +1,17 @@
+{
+  "orders": {
+    "title": "orders",
+    "description": "10 visible orders. Assessment also checks larger fixtures with nulls, ties and boundary values.",
+    "tables": [{"name":"orders","columns":{"id":"integer · primary key","customer_id":"integer · not null","status":"text · not null","total":"numeric(20,2) · nullable","ordered_at":"timestamptz · not null"}}]
+  },
+  "commerce": {
+    "title": "commerce",
+    "description": "52 customers and 310 orders, with skewed customer activity, missing matches, duplicate line values and multiple payments. Unattached payments have a null order_id. Declared orders.total is independent of the line-item calculation; use the measure requested by the exercise. Assessment changes sizes and distributions.",
+    "tables": [
+      {"name":"customers","columns":{"id":"integer · primary key","name":"text · not null"}},
+      {"name":"orders","columns":{"id":"integer · primary key","customer_id":"integer · foreign key → customers.id","status":"text · checked status","total":"numeric(20,2) · nullable","ordered_at":"timestamptz · not null"}},
+      {"name":"order_items","columns":{"id":"integer · primary key","order_id":"integer · foreign key → orders.id","sku":"text · not null","quantity":"integer · positive","unit_price":"numeric(20,2) · nonnegative"}},
+      {"name":"payments","columns":{"id":"integer · primary key","order_id":"integer · nullable foreign key → orders.id","status":"text · captured / failed / refunded","amount":"numeric(20,2) · nonnegative","occurred_at":"timestamptz · not null"}}
+    ]
+  }
+}

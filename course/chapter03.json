@@ -1,0 +1,88 @@
+{
+  "id": "03",
+  "published": false,
+  "fixture": "commerce",
+  "title": "Joins and intermediate results",
+  "subtitle": "Follow row multiplicity through joins, preserve missing matches, and prevent fanout from changing the answer.",
+  "objectives": [
+    "State the grain and expected multiplicity of each intermediate result",
+    "Place outer-join restrictions where they preserve the required unmatched rows",
+    "Use existence and absence tests without multiplying rows or losing null cases",
+    "Aggregate independent child relations before joining their measures",
+    "Relate logical joins to measured physical plans without assuming a specific join algorithm"
+  ],
+  "references": [
+    "https://www.postgresql.org/docs/18/queries-table-expressions.html",
+    "https://www.postgresql.org/docs/18/functions-subquery.html",
+    "https://www.postgresql.org/docs/18/using-explain.html",
+    "https://www.postgresql.org/docs/18/sql-createtable.html",
+    "https://www.postgresql.org/docs/18/querytree.html",
+    "https://www.postgresql.org/docs/18/planner-optimizer.html"
+  ],
+  "exercises": [
+    {
+      "id":"03-01", "title":"Attach the customer without changing order grain",
+      "prompt":"Return each paid order's id, its customer's name, and orders.total, in that column order. Match customers by id, not name. Return one row per paid order and sort by order id ascending.",
+      "starter":"SELECT o.id, c.name, o.total\nFROM orders AS o\n-- attach the customer and keep paid orders\nORDER BY o.id;",
+      "ordered":true, "revision":"03-01-v1-commerce-v1",
+      "solution_sql":"SELECT o.id, c.name, o.total FROM orders o JOIN customers c ON c.id=o.customer_id WHERE o.status='paid' ORDER BY o.id",
+      "explanation":"Each order has one nonnull customer_id referencing a unique customer id. Joining on that key gives exactly one customer for each order. Names are deliberately nonunique. The paid filter and the requested order preserve the contract; joining a descriptive field could multiply or misattach orders."
+    },
+    {
+      "id":"03-02", "title":"Keep every customer, even without a paid order",
+      "prompt":"Return customer id and paid order id, in that column order, for every customer. A customer with several paid orders gets several rows. A customer with no paid order gets exactly one row with a null order id. Sort by customer id ascending, then order id ascending with nulls last.",
+      "starter":"SELECT c.id, o.id\nFROM customers AS c\n-- preserve customers while matching only paid orders\nORDER BY c.id, o.id NULLS LAST;",
+      "ordered":true, "revision":"03-02-v1-commerce-v1",
+      "solution_sql":"SELECT c.id, o.id FROM customers c LEFT JOIN orders o ON o.customer_id=c.id AND o.status='paid' ORDER BY c.id, o.id NULLS LAST",
+      "explanation":"The paid restriction belongs to the matching rule in ON. A WHERE restriction on o.status removes the null-extended row. Adding OR o.id IS NULL to that WHERE does not repair a customer whose only actual matches were pending orders: such a customer was matched before filtering and receives no replacement row."
+    },
+    {
+      "id":"03-03", "title":"Ask whether a paid order exists",
+      "prompt":"Return id and name for each customer who has at least one paid order, once per customer. Sort by customer id ascending. Multiple paid orders must not duplicate a customer in this result.",
+      "starter":"SELECT c.id, c.name\nFROM customers AS c\n-- retain customers with at least one paid order\nORDER BY c.id;",
+      "ordered":true, "revision":"03-03-v1-commerce-v1",
+      "solution_sql":"SELECT c.id, c.name FROM customers c WHERE EXISTS (SELECT 1 FROM orders o WHERE o.customer_id=c.id AND o.status='paid') ORDER BY c.id",
+      "explanation":"EXISTS asks a Boolean question for each customer; it does not add one result row per matching order. A carefully projected DISTINCT join can also be correct here, because the requested result includes the unique customer id. DISTINCT on name alone would merge different people who share a name. No particular physical semi-join node is required for a correct answer."
+    },
+    {
+      "id":"03-04", "title":"Keep line items distinct by their identity",
+      "prompt":"For each line item of a paid order, return order id, line-item id, sku, and quantity multiplied by unit_price, in that column order. Preserve every line, including different lines with identical sku, quantity and price. Sort by order id and then line-item id ascending. Paid orders with no line items do not contribute a row.",
+      "starter":"SELECT o.id, i.id, i.sku, i.quantity * i.unit_price AS line_total\nFROM orders AS o\n-- join line items and keep paid orders\nORDER BY o.id, i.id;",
+      "ordered":true, "revision":"03-04-v1-commerce-v1",
+      "solution_sql":"SELECT o.id, i.id, i.sku, i.quantity*i.unit_price AS line_total FROM orders o JOIN order_items i ON i.order_id=o.id WHERE o.status='paid' ORDER BY o.id,i.id",
+      "explanation":"The requested grain is a line item. An order can have many of them, so repeated order ids are expected. The line-item primary key distinguishes identical business values. Do not remove rows merely because the sku or amount repeats, and do not use the independently declared orders.total as the requested line calculation."
+    },
+    {
+      "id":"03-05", "title":"Find orders with no captured payment",
+      "prompt":"Return the id of every order with no matching payment whose status is captured. Failed or refunded payments do not disqualify an order. Unattached captured payments with a null order_id do not belong to any order. Sort by order id ascending.",
+      "starter":"SELECT o.id\nFROM orders AS o\n-- exclude only orders with a matching captured payment\nORDER BY o.id;",
+      "ordered":true, "revision":"03-05-v1-commerce-v1",
+      "solution_sql":"SELECT o.id FROM orders o WHERE NOT EXISTS (SELECT 1 FROM payments p WHERE p.order_id=o.id AND p.status='captured') ORDER BY o.id",
+      "explanation":"The correlated test asks whether a captured payment matches this order. A null order_id never matches a known order id. NOT IN over nullable payment order_ids produces unknown for otherwise unmatched orders, which WHERE discards. A correctly restricted left anti join is another valid solution; check a nonnullable right-side key when identifying unmatched rows."
+    },
+    {
+      "id":"03-06", "title":"Total two child relations without fanout",
+      "prompt":"Return one row per order: order id, the sum of quantity * unit_price from its line items, and the sum of amount from its captured payments, in that column order. An absent set of lines or captured payments contributes numeric zero. Include every order, regardless of status, and sort by order id ascending. Different lines and captures can have equal values; count every event.",
+      "starter":"SELECT o.id\n-- compute line totals and captured payment totals independently\nFROM orders AS o\nORDER BY o.id;",
+      "ordered":true, "revision":"03-06-v1-commerce-v1",
+      "solution_sql":"SELECT o.id, COALESCE(i.item_total,0), COALESCE(p.captured_total,0) FROM orders o LEFT JOIN (SELECT order_id,SUM(quantity*unit_price) AS item_total FROM order_items GROUP BY order_id) i ON i.order_id=o.id LEFT JOIN (SELECT order_id,SUM(amount) AS captured_total FROM payments WHERE status='captured' GROUP BY order_id) p ON p.order_id=o.id ORDER BY o.id",
+      "explanation":"Collapse each independent child relation to one row per order before joining it to orders. Joining raw lines to raw captures forms all matching line/capture combinations and repeats both measures. SUM(DISTINCT amount) is not a repair: two real captures of 40 must total 80. COALESCE supplies the explicitly requested zero for an absent child group."
+    }
+  ],
+  "transcript": [
+    "An order can look correct in isolation and become wrong as soon as we attach another table. This chapter follows the intermediate result rather than treating JOIN as a decorative clause. Our commerce lab has customers, orders, line items, and payment events. It contains fifty-two customers and three hundred and ten orders in the visible fixture. Some customers have no orders. Some have only unpaid orders. One customer is deliberately much busier than the rest. Names repeat. Several line items have identical values, and an order can have more than one captured payment. These are authored examples, with real keys and constraints, chosen to make mistakes visible before they reach a production report.",
+    "Before writing a query, state its grain: what does one output row represent? In the first exercise, one row represents a paid order. In the fourth, one row represents a line item. In the last, one row represents an order with two independent totals. The same order id can legitimately appear many times in the line-item answer and exactly once in the summary answer. Label a few paper rows with their identities and carry those labels through your joins. If an order has three lines, joining it to those lines produces three rows. Adding the customer does not change that count because its id is unique and the order has a valid reference.",
+    "Start with the paid orders and their customer names. Match orders.customer_id to customers.id. The name is a descriptive field, not the relationship key. In this fixture, two different customers are named Mira. Generated names also repeat. A join based on a shared name can attach the wrong person or create extra matches. Project the order id, customer name, and declared order total. Keep the paid predicate and order by the order id. Our foreign key guarantees a customer exists for each order, and the referenced primary key guarantees uniqueness. Those guarantees make the one-customer-per-order claim testable; we are not inferring it from a few convenient sample rows.",
+    "Now change the requirement: list every customer and any paid orders they have. Omar has orders, but none is paid. Noor has no orders at all. Both must appear with a null order id. A left join preserves the left customer when no pair satisfies its matching rule. Make the rule include both the customer relationship and the paid status. For a customer with several paid orders, several matches remain intentional. This result is neither one row per customer nor one row per order. Its grain is a matching customer and paid-order pair, plus one unmatched row for each customer with no such pair. State that exception explicitly when estimating row counts.",
+    "Move the paid restriction from ON to WHERE and observe Omar and Noor disappear. In this exercise, that move changes the answer. Try the common attempted repair: WHERE the status is paid OR the order id is null. Noor can return, but Omar still disappears because the join already matched his pending orders. Filtering them does not manufacture a new unmatched row. Draw Omar beside his two unpaid orders and cross out the joined rows; there is no null row left to keep. This is a concrete correctness experiment. Compare the result identities before comparing timings. Faster execution of the wrong outer join is not an optimization of the required report.",
+    "A different question asks only which customers have a paid order. We do not need to list those orders. Use an existence test so a customer with twenty paid orders still contributes one customer row. SELECT one inside the subquery communicates that only existence matters. A distinct projection of customer id and name from a join can express the same result here, but DISTINCT on name alone merges people. Inspect both forms if you are curious. The accepted answer is about customer identities and multiplicity, not a required SQL spelling. Existence is a logical requirement; inspect the actual plan to see how this PostgreSQL instance implements it.",
+    "For line items, keep their own identities. Order one contains a book and two separate seat lines, each priced at fifty. Order three contains two different book lines with the same quantity and price. These repeats are part of the data contract. A line report should carry both the order id and the line id so you can audit each event. Calculate quantity times unit price with numeric arithmetic. Do not replace that calculation with orders.total: in this synthetic fixture the declared order amount is maintained independently. The fourth exercise intentionally uses an inner join because paid orders with no lines are outside its requested result. A left join would need an additional rule to avoid inventing a nonexistent line.",
+    "Payment events introduce another kind of missing relationship. A captured payment can be waiting for attachment to an order, so payments.order_id is nullable. That is a valid state under this authored schema. There is also an order with failed attempts and no capture, and a paid order with no payment event. Find orders with no matching captured payment by asking whether such an event does not exist for that order id. Failed and refunded events are irrelevant to this matching rule. An unattached capture is irrelevant to every known order. Keep these cases in your scratch query; checking only orders that already have captures cannot prove an absence query correct.",
+    "Try NOT IN against the captured payment order ids. The unattached capture contributes null. For an order with no equal id in that list, the comparison cannot become definitely true in the presence of that unknown value, so WHERE drops the order. NOT EXISTS expresses the required correlated absence test directly. Filtering nulls out of the NOT IN input can also make a suitable nonnullable outer-key query correct, but it is an additional condition you must justify. Later chapters will investigate anti joins more deeply. For now, the fixture gives you a visible reason to examine both the outer key and the subquery values whenever an exclusion query unexpectedly returns nothing.",
+    "The final exercise previews a serious reporting bug. Order one has three lines and two captured payments. Join both raw child tables on its id and you get six combinations. Each line appears twice, and each capture appears three times. Summing those columns after the join repeats real amounts. Order three adds a second trap: its two captures both have the amount forty. SUM DISTINCT of payment amount would count forty once instead of eighty. Equal values do not imply the same event. Run the raw join for orders one and three, project both child ids, and inspect the pairs. Those identities explain the error more reliably than staring at the final total.",
+    "Compute each total in its own child relation first. Group line items by order id and sum quantity times unit price. Separately keep captured payments, group by order id, and sum their amounts. Each derived relation then has at most one row per order. Left join those totals to orders and use zero where the requested child set is absent. The grouping syntax will receive a full investigation in the next chapter; here it establishes the intermediate grain needed for a safe join. This method preserves two genuine equal-valued events while avoiding their cross-product with another child relation. Test the zero cases as well as orders with several rows on both sides.",
+    "Follow the query into the engine. The analyzed and rewritten representation describes relation references, expressions, join types, and conditions. The planner considers implementation paths and join arrangements that preserve the query's meaning. A physical plan can use nested loops, hashing, or merging; the written JOIN syntax alone does not choose the algorithm. Outer-join semantics constrain which transformations are legal. Do not read the left-to-right text as an execution trace. Our mechanical scene is an illustration. Your Explain output is the selected estimated plan, and Analyze executes your own query to supply measurements. Keep those three forms of evidence separate.",
+    "Run Analyze for the pair report and for the existence query. Inspect the join node, its children, the join condition, and output rows. Also inspect the estimated rows and any actual loops before interpreting a number as a total. A customer-heavy distribution can expose much more work than a balanced one even when the query text is unchanged. Do not demand one named join node as a universal success condition. Small tables, available ordering, estimates, and selectivity affect the choice. Later modules will build controlled comparisons over larger profiles; this chapter first teaches you to connect a plan's row flow to the result contract you can already check.",
+    "Your six submissions now cover one order with its customer, every customer with paid matches or a missing match, one customer per existence result, one row per genuine line, an absence test with nullable payment references, and independent totals without fanout. All checks run your SQL against fresh commerce variants. They change the number and status of generated orders rather than trusting a hardcoded answer from the visible sample. Use the schema panel to inspect the keys and optional relationships, and run small diagnostic queries freely. A reference answer becomes available after you try and stays collapsed until you open it. Carry the habit of naming grain into grouping, indexes, planner estimates, and the advanced reporting capstones."
+  ]
+}

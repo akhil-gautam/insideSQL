@@ -1,3 +1,4 @@
+mod fixtures;
 mod progress;
 mod runtime;
 mod service;
