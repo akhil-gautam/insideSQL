@@ -1,0 +1,514 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-10-11T01:34:18.927771+00:00",
+  "title": "Design System: SQL Internals Academy",
+  "extensions": {
+    "colorMeta": {
+      "ink": {
+        "role": "neutral",
+        "displayName": "Ink",
+        "canonical": "#23344d",
+        "tonalRamp": [
+          "oklch(15% 0.05019 257.89)",
+          "oklch(26% 0.05019 257.89)",
+          "oklch(38% 0.05019 257.89)",
+          "oklch(49% 0.05019 257.89)",
+          "oklch(61% 0.05019 257.89)",
+          "oklch(72% 0.05019 257.89)",
+          "oklch(84% 0.05019 257.89)",
+          "oklch(95% 0.05019 257.89)"
+        ]
+      },
+      "blue": {
+        "role": "primary",
+        "displayName": "Blue",
+        "canonical": "#2459b8",
+        "tonalRamp": [
+          "oklch(15% 0.16082 261.00)",
+          "oklch(26% 0.16082 261.00)",
+          "oklch(38% 0.16082 261.00)",
+          "oklch(49% 0.16082 261.00)",
+          "oklch(61% 0.16082 261.00)",
+          "oklch(72% 0.16082 261.00)",
+          "oklch(84% 0.16082 261.00)",
+          "oklch(95% 0.16082 261.00)"
+        ]
+      },
+      "blue-hover": {
+        "role": "neutral",
+        "displayName": "Blue Hover",
+        "canonical": "#19499e",
+        "tonalRamp": [
+          "oklch(15% 0.14793 260.90)",
+          "oklch(26% 0.14793 260.90)",
+          "oklch(38% 0.14793 260.90)",
+          "oklch(49% 0.14793 260.90)",
+          "oklch(61% 0.14793 260.90)",
+          "oklch(72% 0.14793 260.90)",
+          "oklch(84% 0.14793 260.90)",
+          "oklch(95% 0.14793 260.90)"
+        ]
+      },
+      "muted": {
+        "role": "neutral",
+        "displayName": "Muted",
+        "canonical": "#718097",
+        "tonalRamp": [
+          "oklch(15% 0.03944 258.85)",
+          "oklch(26% 0.03944 258.85)",
+          "oklch(38% 0.03944 258.85)",
+          "oklch(49% 0.03944 258.85)",
+          "oklch(61% 0.03944 258.85)",
+          "oklch(72% 0.03944 258.85)",
+          "oklch(84% 0.03944 258.85)",
+          "oklch(95% 0.03944 258.85)"
+        ]
+      },
+      "line": {
+        "role": "neutral",
+        "displayName": "Line",
+        "canonical": "#dce3ed",
+        "tonalRamp": [
+          "oklch(15% 0.01557 257.20)",
+          "oklch(26% 0.01557 257.20)",
+          "oklch(38% 0.01557 257.20)",
+          "oklch(49% 0.01557 257.20)",
+          "oklch(61% 0.01557 257.20)",
+          "oklch(72% 0.01557 257.20)",
+          "oklch(84% 0.01557 257.20)",
+          "oklch(95% 0.01557 257.20)"
+        ]
+      },
+      "workbench-ground": {
+        "role": "neutral",
+        "displayName": "Workbench Ground",
+        "canonical": "#eef2f8",
+        "tonalRamp": [
+          "oklch(15% 0.00911 258.34)",
+          "oklch(26% 0.00911 258.34)",
+          "oklch(38% 0.00911 258.34)",
+          "oklch(49% 0.00911 258.34)",
+          "oklch(61% 0.00911 258.34)",
+          "oklch(72% 0.00911 258.34)",
+          "oklch(84% 0.00911 258.34)",
+          "oklch(95% 0.00911 258.34)"
+        ]
+      },
+      "workbench-surface": {
+        "role": "neutral",
+        "displayName": "Workbench Surface",
+        "canonical": "#ffffff",
+        "tonalRamp": [
+          "oklch(15% 0.00000 89.88)",
+          "oklch(26% 0.00000 89.88)",
+          "oklch(38% 0.00000 89.88)",
+          "oklch(49% 0.00000 89.88)",
+          "oklch(61% 0.00000 89.88)",
+          "oklch(72% 0.00000 89.88)",
+          "oklch(84% 0.00000 89.88)",
+          "oklch(95% 0.00000 89.88)"
+        ]
+      },
+      "sidebar-ground": {
+        "role": "neutral",
+        "displayName": "Sidebar Ground",
+        "canonical": "#e5ebf4",
+        "tonalRamp": [
+          "oklch(15% 0.01376 258.35)",
+          "oklch(26% 0.01376 258.35)",
+          "oklch(38% 0.01376 258.35)",
+          "oklch(49% 0.01376 258.35)",
+          "oklch(61% 0.01376 258.35)",
+          "oklch(72% 0.01376 258.35)",
+          "oklch(84% 0.01376 258.35)",
+          "oklch(95% 0.01376 258.35)"
+        ]
+      },
+      "button-hover": {
+        "role": "neutral",
+        "displayName": "Button Hover",
+        "canonical": "#edf3ff",
+        "tonalRamp": [
+          "oklch(15% 0.01733 264.49)",
+          "oklch(26% 0.01733 264.49)",
+          "oklch(38% 0.01733 264.49)",
+          "oklch(49% 0.01733 264.49)",
+          "oklch(61% 0.01733 264.49)",
+          "oklch(72% 0.01733 264.49)",
+          "oklch(84% 0.01733 264.49)",
+          "oklch(95% 0.01733 264.49)"
+        ]
+      },
+      "focus": {
+        "role": "neutral",
+        "displayName": "Focus",
+        "canonical": "#8aabeb",
+        "tonalRamp": [
+          "oklch(15% 0.10012 263.14)",
+          "oklch(26% 0.10012 263.14)",
+          "oklch(38% 0.10012 263.14)",
+          "oklch(49% 0.10012 263.14)",
+          "oklch(61% 0.10012 263.14)",
+          "oklch(72% 0.10012 263.14)",
+          "oklch(84% 0.10012 263.14)",
+          "oklch(95% 0.10012 263.14)"
+        ]
+      },
+      "engine-ground": {
+        "role": "neutral",
+        "displayName": "Engine Ground",
+        "canonical": "#201e1d",
+        "tonalRamp": [
+          "oklch(15% 0.00362 48.57)",
+          "oklch(26% 0.00362 48.57)",
+          "oklch(38% 0.00362 48.57)",
+          "oklch(49% 0.00362 48.57)",
+          "oklch(61% 0.00362 48.57)",
+          "oklch(72% 0.00362 48.57)",
+          "oklch(84% 0.00362 48.57)",
+          "oklch(95% 0.00362 48.57)"
+        ]
+      },
+      "engine-copy": {
+        "role": "neutral",
+        "displayName": "Engine Copy",
+        "canonical": "#fff0df",
+        "tonalRamp": [
+          "oklch(15% 0.02774 70.95)",
+          "oklch(26% 0.02774 70.95)",
+          "oklch(38% 0.02774 70.95)",
+          "oklch(49% 0.02774 70.95)",
+          "oklch(61% 0.02774 70.95)",
+          "oklch(72% 0.02774 70.95)",
+          "oklch(84% 0.02774 70.95)",
+          "oklch(95% 0.02774 70.95)"
+        ]
+      },
+      "engine-muted": {
+        "role": "neutral",
+        "displayName": "Engine Muted",
+        "canonical": "#c7b9ab",
+        "tonalRamp": [
+          "oklch(15% 0.02514 67.45)",
+          "oklch(26% 0.02514 67.45)",
+          "oklch(38% 0.02514 67.45)",
+          "oklch(49% 0.02514 67.45)",
+          "oklch(61% 0.02514 67.45)",
+          "oklch(72% 0.02514 67.45)",
+          "oklch(84% 0.02514 67.45)",
+          "oklch(95% 0.02514 67.45)"
+        ]
+      },
+      "engine-accent": {
+        "role": "primary",
+        "displayName": "Engine Accent",
+        "canonical": "#ffc59e",
+        "tonalRamp": [
+          "oklch(15% 0.08421 55.24)",
+          "oklch(26% 0.08421 55.24)",
+          "oklch(38% 0.08421 55.24)",
+          "oklch(49% 0.08421 55.24)",
+          "oklch(61% 0.08421 55.24)",
+          "oklch(72% 0.08421 55.24)",
+          "oklch(84% 0.08421 55.24)",
+          "oklch(95% 0.08421 55.24)"
+        ]
+      },
+      "engine-panel": {
+        "role": "neutral",
+        "displayName": "Engine Panel",
+        "canonical": "#292624",
+        "tonalRamp": [
+          "oklch(15% 0.00578 56.14)",
+          "oklch(26% 0.00578 56.14)",
+          "oklch(38% 0.00578 56.14)",
+          "oklch(49% 0.00578 56.14)",
+          "oklch(61% 0.00578 56.14)",
+          "oklch(72% 0.00578 56.14)",
+          "oklch(84% 0.00578 56.14)",
+          "oklch(95% 0.00578 56.14)"
+        ]
+      },
+      "engine-border": {
+        "role": "neutral",
+        "displayName": "Engine Border",
+        "canonical": "#55504b",
+        "tonalRamp": [
+          "oklch(15% 0.01045 67.55)",
+          "oklch(26% 0.01045 67.55)",
+          "oklch(38% 0.01045 67.55)",
+          "oklch(49% 0.01045 67.55)",
+          "oklch(61% 0.01045 67.55)",
+          "oklch(72% 0.01045 67.55)",
+          "oklch(84% 0.01045 67.55)",
+          "oklch(95% 0.01045 67.55)"
+        ]
+      },
+      "engine-hover": {
+        "role": "neutral",
+        "displayName": "Engine Hover",
+        "canonical": "#403932",
+        "tonalRamp": [
+          "oklch(15% 0.01540 67.29)",
+          "oklch(26% 0.01540 67.29)",
+          "oklch(38% 0.01540 67.29)",
+          "oklch(49% 0.01540 67.29)",
+          "oklch(61% 0.01540 67.29)",
+          "oklch(72% 0.01540 67.29)",
+          "oklch(84% 0.01540 67.29)",
+          "oklch(95% 0.01540 67.29)"
+        ]
+      },
+      "engine-graphite": {
+        "role": "neutral",
+        "displayName": "Engine Graphite",
+        "canonical": "#4c4946",
+        "tonalRamp": [
+          "oklch(15% 0.00638 67.65)",
+          "oklch(26% 0.00638 67.65)",
+          "oklch(38% 0.00638 67.65)",
+          "oklch(49% 0.00638 67.65)",
+          "oklch(61% 0.00638 67.65)",
+          "oklch(72% 0.00638 67.65)",
+          "oklch(84% 0.00638 67.65)",
+          "oklch(95% 0.00638 67.65)"
+        ]
+      },
+      "engine-steel": {
+        "role": "neutral",
+        "displayName": "Engine Steel",
+        "canonical": "#8b8179",
+        "tonalRamp": [
+          "oklch(15% 0.01704 61.18)",
+          "oklch(26% 0.01704 61.18)",
+          "oklch(38% 0.01704 61.18)",
+          "oklch(49% 0.01704 61.18)",
+          "oklch(61% 0.01704 61.18)",
+          "oklch(72% 0.01704 61.18)",
+          "oklch(84% 0.01704 61.18)",
+          "oklch(95% 0.01704 61.18)"
+        ]
+      },
+      "engine-edge": {
+        "role": "neutral",
+        "displayName": "Engine Edge",
+        "canonical": "#161312",
+        "tonalRamp": [
+          "oklch(15% 0.00532 39.36)",
+          "oklch(26% 0.00532 39.36)",
+          "oklch(38% 0.00532 39.36)",
+          "oklch(49% 0.00532 39.36)",
+          "oklch(61% 0.00532 39.36)",
+          "oklch(72% 0.00532 39.36)",
+          "oklch(84% 0.00532 39.36)",
+          "oklch(95% 0.00532 39.36)"
+        ]
+      },
+      "caption-ground": {
+        "role": "neutral",
+        "displayName": "Caption Ground",
+        "canonical": "#181615",
+        "tonalRamp": [
+          "oklch(15% 0.00377 48.53)",
+          "oklch(26% 0.00377 48.53)",
+          "oklch(38% 0.00377 48.53)",
+          "oklch(49% 0.00377 48.53)",
+          "oklch(61% 0.00377 48.53)",
+          "oklch(72% 0.00377 48.53)",
+          "oklch(84% 0.00377 48.53)",
+          "oklch(95% 0.00377 48.53)"
+        ]
+      }
+    },
+    "typographyMeta": {
+      "body": {
+        "displayName": "Body",
+        "purpose": "Current body typography."
+      },
+      "headline": {
+        "displayName": "Headline",
+        "purpose": "Current headline typography."
+      },
+      "workbench-label": {
+        "displayName": "Workbench Label",
+        "purpose": "Current workbench label typography."
+      },
+      "engine-title": {
+        "displayName": "Engine Title",
+        "purpose": "Current engine title typography."
+      },
+      "engine-body": {
+        "displayName": "Engine Body",
+        "purpose": "Current engine body typography."
+      },
+      "sql": {
+        "displayName": "Sql",
+        "purpose": "Actual SQL text and editor content."
+      },
+      "engine-annotation": {
+        "displayName": "Engine Annotation",
+        "purpose": "Selected-stage DOM source labels in interactive desktop and mobile views."
+      },
+      "video-title": {
+        "displayName": "Video Title",
+        "purpose": "Current video title typography."
+      },
+      "video-annotation": {
+        "displayName": "Video Annotation",
+        "purpose": "Selected-stage DOM labels in rendered video."
+      },
+      "video-caption": {
+        "displayName": "Video Caption",
+        "purpose": "Current video caption typography."
+      }
+    },
+    "shadows": [
+      {
+        "name": "selected-chapter",
+        "value": "0 2px 6px #314a7210",
+        "purpose": "Subtle separation for the active chapter row."
+      }
+    ],
+    "motion": [
+      {
+        "name": "button-background",
+        "value": "background .12s",
+        "purpose": "Workbench button hover transition."
+      },
+      {
+        "name": "camera-transition",
+        "value": "1.6s / Anime.js eases.outExpo",
+        "purpose": "Seekable inspection movement between overview and stages."
+      },
+      {
+        "name": "assembly-orbit",
+        "value": "sin(progress * 2π) * 0.045 radians",
+        "purpose": "Subtle assembly motion; settles at zero for reduced motion."
+      }
+    ],
+    "breakpoints": [
+      {
+        "name": "workbench-medium",
+        "value": "1250px"
+      },
+      {
+        "name": "workbench-stack",
+        "value": "1000px"
+      },
+      {
+        "name": "workbench-narrow",
+        "value": "650px"
+      },
+      {
+        "name": "journey-narrow",
+        "value": "600px"
+      }
+    ]
+  },
+  "components": [
+    {
+      "name": "Run Button",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "Compact blue SQL execution action.",
+      "html": "<button class=\"ds-run\">Run</button>",
+      "css": ".ds-run{font-family:-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;font-size:14px;cursor:pointer;border:1px solid var(--line, #dce3ed);border-radius:6px;padding:8px 12px;transition:background .12s;font-size:11px;padding:7px 11px;background:var(--blue, #2459b8);color:white;border-color:var(--blue, #2459b8)}.ds-run:hover{background:#19499e}.ds-run:focus-visible{outline:3px solid #8aabeb;outline-offset:3px;}"
+    },
+    {
+      "name": "Secondary Action",
+      "kind": "button",
+      "refersTo": "button-secondary",
+      "description": "Quiet workbench action such as Explain or Reset.",
+      "html": "<button class=\"ds-secondary\">Explain</button>",
+      "css": ".ds-secondary{font-family:-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;font-size:14px;cursor:pointer;border:1px solid var(--line, #dce3ed);border-radius:6px;padding:8px 12px;transition:background .12s;background:white;color:var(--ink, #23344d)}.ds-secondary:hover{background:#edf3ff}.ds-secondary:focus-visible{outline:3px solid #8aabeb;outline-offset:3px;}"
+    },
+    {
+      "name": "Selected Chapter",
+      "kind": "nav",
+      "refersTo": "chapter-active",
+      "description": "The active chapter row with local exercise progress.",
+      "html": "<nav aria-label=\"Chapter sample\"><button class=\"ds-chapter\"><span class=\"ds-number\">1</span><span>A SELECT statement,<br>end to end<small>0/6 exercises passed</small></span></button></nav>",
+      "css": ".ds-chapter{font-family:-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;display:flex;align-items:center;gap:12px;text-align:left;width:236px;padding:13px 8px;border:0;background:white;color:var(--blue, #2459b8);border-radius:8px;font-size:12px;line-height:1.45;box-shadow:0 2px 6px #314a7210;cursor:pointer}.ds-number{border:1px solid #c6d8f7;border-radius:50%;display:grid;place-items:center;width:25px;height:25px;background:#e8f0fe;font-size:11px}.ds-chapter small{display:block;font-size:10px;margin-top:4px;color:#7b8daa}.ds-chapter:hover{background:#edf3ff}.ds-chapter:focus-visible{outline:3px solid #8aabeb;outline-offset:3px;}"
+    },
+    {
+      "name": "Editor Container",
+      "kind": "card",
+      "refersTo": "workbench-panel",
+      "description": "White working surface with a pale header and border.",
+      "html": "<section class=\"ds-panel\"><header class=\"ds-panel-header\">Query workspace</header><p class=\"ds-panel-body\">See what your query does.</p></section>",
+      "css": ".ds-panel{font-family:-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;background:white;border:1px solid var(--line, #dce3ed);border-radius:10px;overflow:hidden;color:var(--ink, #23344d)}.ds-panel-header{height:49px;display:flex;align-items:center;padding:0 18px;border-bottom:1px solid var(--line, #dce3ed);background:#fafbfd;font-size:12px;font-weight:600}.ds-panel-body{margin:0;padding:32px 22px;color:#657b99;font-size:12px;line-height:1.8}"
+    },
+    {
+      "name": "SQL Editor Surface",
+      "kind": "input",
+      "refersTo": "sql-editor",
+      "description": "Static preview of the SQL editor surface; actual runtime uses CodeMirror.",
+      "html": "<textarea class=\"ds-sql\" aria-label=\"SQL query\" spellcheck=\"false\">SELECT id, total\nFROM orders\nWHERE status = 'paid';</textarea>",
+      "css": ".ds-sql{display:block;width:100%;height:210px;border:0;background:white;padding:16px;font-family:ui-monospace, SFMono-Regular, Menlo, monospace;font-size:14px;color:#23344d;resize:none}.ds-sql:focus-visible{outline:3px solid #8aabeb;outline-offset:3px}"
+    },
+    {
+      "name": "Journey Stage Selector",
+      "kind": "button",
+      "refersTo": "engine-stage",
+      "description": "Copper selected state in the scoped charcoal journey.",
+      "html": "<div class=\"ds-stage-row\"><button class=\"ds-stage\" aria-pressed=\"false\">Overview</button><button class=\"ds-stage\" aria-pressed=\"true\">Parser</button></div>",
+      "css": ".ds-stage-row{padding:12px 18px;display:flex;gap:6px;flex-wrap:wrap;background:#292624;border-top:1px solid #55504b}.ds-stage{font-family:\"IBM Plex Mono\",monospace;font-size:10px;padding:7px 9px;background:transparent;color:#c7b9ab;border:1px solid #55504b;border-radius:2px;cursor:pointer}.ds-stage:hover{background:#403932}.ds-stage[aria-pressed=true]{background:#ffc59e;color:#201e1d;border-color:#ffc59e}.ds-stage:focus-visible{outline:2px solid #ffc59e;outline-offset:3px}"
+    },
+    {
+      "name": "Illustration Disclosure",
+      "kind": "chip",
+      "refersTo": "illustration-label",
+      "description": "Noninteractive badge distinguishing illustration from query evidence.",
+      "html": "<span class=\"ds-illustrated\">Illustrated mechanism</span>",
+      "css": ".ds-illustrated{display:inline-block;background:#201e1d;font-family:\"IBM Plex Mono\",monospace;font-size:9px;line-height:1.5;color:#c7b9ab;border:1px solid #55504b;padding:5px 8px;white-space:nowrap}"
+    },
+    {
+      "name": "Source Annotation",
+      "kind": "custom",
+      "refersTo": "engine-annotation",
+      "description": "Sharp projected source labels shown for the selected chamber.",
+      "html": "<div class=\"ds-annotation-ground\"><span class=\"ds-annotation\">SelectStmt</span></div>",
+      "css": ".ds-annotation-ground{background:#201e1d;padding:28px}.ds-annotation{display:inline-block;font:12px/1.4 \"IBM Plex Mono\",monospace;color:#fff0df;background:#201e1deb;padding:3px 6px;border-bottom:1px solid #ffc59e;white-space:nowrap}"
+    }
+  ],
+  "narrative": {
+    "northStar": "The Database Engine Workshop",
+    "overview": "A quiet slate-blue workbench surrounds a separate charcoal mechanical illustration. White editing and assessment surfaces keep real SQL work readable; the exploded engine supplies depth and cinematic attention inside the lesson.\n\nThe journey uses local Space Grotesk and IBM Plex Mono, warm copper light, and ivory text. Six mechanically distinct chambers are inspectable as SQL text, parser, analyzer, rewriter, planner and executor. The assembly is a teaching metaphor; measured query evidence belongs to the workbench.",
+    "keyCharacteristics": [
+      "Slate-blue application chrome and white work surfaces.",
+      "Scoped charcoal machinery, copper edges and ivory annotations.",
+      "Real geometry with distinct internal structures for each stage.",
+      "One shared scene for interactive exploration and frame-driven video."
+    ],
+    "rules": [
+      {
+        "name": "Scoped World",
+        "body": "Keep the charcoal/copper palette inside the journey and its video. The surrounding workbench retains its slate-blue/white system.",
+        "section": "colors"
+      },
+      {
+        "name": "Readable Annotation",
+        "body": "Render selected-stage labels as projected DOM text using the annotation roles; keep source names and input/output contracts readable outside the 3D canvas.",
+        "section": "typography"
+      },
+      {
+        "name": "Illustrated Evidence",
+        "body": "Keep the “Illustrated mechanism” label visible. Geometry, signal packets and camera motion do not represent a measured PostgreSQL trace.",
+        "section": "elevation"
+      }
+    ],
+    "dos": [
+      "Do retain the workbench palette and UI typography around the scoped cinematic journey.",
+      "Do use different internal structures for the six engine stages; the shared casing is the metaphor.",
+      "Do pair each inspection view with its input/output contract and text explanation.",
+      "Do preserve Overview, keyboard stage selection, pause/reduced-motion behavior and the graphics fallback.",
+      "Do distinguish illustrated mechanisms from PostgreSQL estimates and measured execution."
+    ],
+    "donts": [
+      "Don’t extend the journey’s charcoal/copper treatment across the entire application.",
+      "Don’t replace sharp DOM source annotations with rasterized text on geometry.",
+      "Don’t add invented execution timings or measured row counts to the illustration.",
+      "Don’t give video labels or rotors an independent animation clock."
+    ]
+  }
+}

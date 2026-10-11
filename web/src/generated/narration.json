@@ -1,0 +1,667 @@
+{
+  "fps": 30,
+  "durationInFrames": 12538,
+  "durationSeconds": 416.95428599999974,
+  "captions": [
+    {
+      "text": "Start with a query you already recognize.",
+      "start": 0.0,
+      "end": 2.660862,
+      "section": 0
+    },
+    {
+      "text": "Select the order identifier and total from orders, keep the rows whose status is paid, and return them",
+      "start": 2.660862,
+      "end": 8.909887,
+      "section": 0
+    },
+    {
+      "text": "in identifier order.",
+      "start": 8.909887,
+      "end": 10.451020999999999,
+      "section": 0
+    },
+    {
+      "text": "We are not going to begin with definitions of databases or tuples.",
+      "start": 10.451020999999999,
+      "end": 14.365941999999999,
+      "section": 0
+    },
+    {
+      "text": "We are going to follow this statement through PostgreSQL, and learn how to check what the engine really",
+      "start": 14.365941999999999,
+      "end": 20.103583999999998,
+      "section": 0
+    },
+    {
+      "text": "did.",
+      "start": 20.103583999999998,
+      "end": 20.620227999999997,
+      "section": 0
+    },
+    {
+      "text": "The goal is to make a habit: first decide what a query must mean, then inspect how the",
+      "start": 20.620227999999997,
+      "end": 25.868390999999995,
+      "section": 0
+    },
+    {
+      "text": "database implements it, and only then decide whether a change improves it.",
+      "start": 25.868390999999995,
+      "end": 30.007347999999997,
+      "section": 0
+    },
+    {
+      "text": "Correctness comes before speed.",
+      "start": 30.007347999999997,
+      "end": 31.957551999999996,
+      "section": 0
+    },
+    {
+      "text": "Our example has three separate responsibilities.",
+      "start": 31.957551999999996,
+      "end": 34.810069,
+      "section": 1
+    },
+    {
+      "text": "The from clause names a relation.",
+      "start": 34.810069,
+      "end": 36.644898999999995,
+      "section": 1
+    },
+    {
+      "text": "The where clause says which rows belong in the result.",
+      "start": 36.644898999999995,
+      "end": 39.362086999999995,
+      "section": 1
+    },
+    {
+      "text": "The select list says which values to return.",
+      "start": 39.362086999999995,
+      "end": 41.951564999999995,
+      "section": 1
+    },
+    {
+      "text": "Order by adds an ordering guarantee.",
+      "start": 41.951564999999995,
+      "end": 44.194784999999996,
+      "section": 1
+    },
+    {
+      "text": "Without order by, the engine owes you the right rows but not a particular sequence.",
+      "start": 44.194784999999996,
+      "end": 48.887528999999994,
+      "section": 1
+    },
+    {
+      "text": "A physical plan is allowed to arrange work differently from the order of words in the statement.",
+      "start": 48.887528999999994,
+      "end": 53.58625899999999,
+      "section": 1
+    },
+    {
+      "text": "This freedom is the reason SQL can be optimized.",
+      "start": 53.58625899999999,
+      "end": 56.62643999999999,
+      "section": 1
+    },
+    {
+      "text": "It is also the reason guessing execution from the spelling of a query often leads you astray.",
+      "start": 56.62643999999999,
+      "end": 61.56925199999999,
+      "section": 1
+    },
+    {
+      "text": "The client sends SQL text to PostgreSQL over a connection.",
+      "start": 61.56925199999999,
+      "end": 65.609978,
+      "section": 2
+    },
+    {
+      "text": "Before the database can search for any orders, it must recognize the statement.",
+      "start": 65.609978,
+      "end": 70.269842,
+      "section": 2
+    },
+    {
+      "text": "Lexing recognizes tokens such as select, a column identifier, and a string literal.",
+      "start": 70.269842,
+      "end": 76.020726,
+      "section": 2
+    },
+    {
+      "text": "Parsing checks that these tokens form a valid statement and builds a syntax tree.",
+      "start": 76.020726,
+      "end": 80.467075,
+      "section": 2
+    },
+    {
+      "text": "A misspelled keyword or an unmatched parenthesis can stop the journey here.",
+      "start": 80.467075,
+      "end": 84.469207,
+      "section": 2
+    },
+    {
+      "text": "Notice what a syntax error does not tell you: it tells you nothing about the efficiency of an",
+      "start": 84.469207,
+      "end": 89.605307,
+      "section": 2
+    },
+    {
+      "text": "index or the speed of storage, because no order rows have been retrieved yet.",
+      "start": 89.605307,
+      "end": 93.97923,
+      "section": 2
+    },
+    {
+      "text": "Analysis connects the syntax to database objects.",
+      "start": 93.97923,
+      "end": 97.319593,
+      "section": 3
+    },
+    {
+      "text": "Which orders table does this name refer to?",
+      "start": 97.319593,
+      "end": 99.93392399999999,
+      "section": 3
+    },
+    {
+      "text": "Does the identifier column exist?",
+      "start": 99.93392399999999,
+      "end": 102.26181499999998,
+      "section": 3
+    },
+    {
+      "text": "What is the type of total?",
+      "start": 102.26181499999998,
+      "end": 103.79673599999998,
+      "section": 3
+    },
+    {
+      "text": "Which equality operator should compare status with the string paid?",
+      "start": 103.79673599999998,
+      "end": 107.49061399999998,
+      "section": 3
+    },
+    {
+      "text": "PostgreSQL resolves these questions using its catalogs, namespace rules and type system.",
+      "start": 107.49061399999998,
+      "end": 113.30526299999998,
+      "section": 3
+    },
+    {
+      "text": "It also checks relevant permissions.",
+      "start": 113.30526299999998,
+      "end": 115.55455999999998,
+      "section": 3
+    },
+    {
+      "text": "A statement can be grammatical and still fail analysis because a column does not exist.",
+      "start": 115.55455999999998,
+      "end": 120.55514999999998,
+      "section": 3
+    },
+    {
+      "text": "The type of an expression matters later too.",
+      "start": 120.55514999999998,
+      "end": 123.02852899999998,
+      "section": 3
+    },
+    {
+      "text": "Casting an indexed value or applying a function can change which access paths are available.",
+      "start": 123.02852899999998,
+      "end": 128.07859699999997,
+      "section": 3
+    },
+    {
+      "text": "We will investigate those cases with real indexes in later chapters.",
+      "start": 128.07859699999997,
+      "end": 131.99356299999997,
+      "section": 3
+    },
+    {
+      "text": "Next comes rewriting.",
+      "start": 131.99356299999997,
+      "end": 133.45120499999996,
+      "section": 4
+    },
+    {
+      "text": "A view can stand for a stored query whose definition must be expanded.",
+      "start": 133.45120499999996,
+      "end": 137.51134099999996,
+      "section": 4
+    },
+    {
+      "text": "Rules and security policies can add or transform expressions before planning.",
+      "start": 137.51134099999996,
+      "end": 142.15075099999996,
+      "section": 4
+    },
+    {
+      "text": "The important idea is that the planner may receive a richer representation than the short SQL text the",
+      "start": 142.15075099999996,
+      "end": 148.08204399999997,
+      "section": 4
+    },
+    {
+      "text": "client sent.",
+      "start": 148.08204399999997,
+      "end": 149.07855199999997,
+      "section": 4
+    },
+    {
+      "text": "In this first lab the orders table is a plain relation and no special rewrite is needed.",
+      "start": 149.07855199999997,
+      "end": 153.74276999999998,
+      "section": 4
+    },
+    {
+      "text": "The illustrated journey still includes this stage so you can place more complex behavior correctly when we introduce",
+      "start": 153.74276999999998,
+      "end": 160.24295099999998,
+      "section": 4
+    },
+    {
+      "text": "views and row level security.",
+      "start": 160.24295099999998,
+      "end": 162.05837099999997,
+      "section": 4
+    },
+    {
+      "text": "An animation shows the mechanism; it is not a recording of every instruction in the server.",
+      "start": 162.05837099999997,
+      "end": 167.00086499999998,
+      "section": 4
+    },
+    {
+      "text": "The planner considers ways to produce the required result.",
+      "start": 167.00086499999998,
+      "end": 170.28694199999998,
+      "section": 5
+    },
+    {
+      "text": "It can read a table sequentially, probe an index, or combine access paths.",
+      "start": 170.28694199999998,
+      "end": 175.14834799999997,
+      "section": 5
+    },
+    {
+      "text": "It can obtain order from a suitable index or add a sort.",
+      "start": 175.14834799999997,
+      "end": 178.32630699999996,
+      "section": 5
+    },
+    {
+      "text": "To compare alternatives, it uses estimates about the number of rows, the distribution of values, and the cost",
+      "start": 178.32630699999996,
+      "end": 185.16449299999996,
+      "section": 5
+    },
+    {
+      "text": "of work.",
+      "start": 185.16449299999996,
+      "end": 185.89261099999996,
+      "section": 5
+    },
+    {
+      "text": "Estimates are not measurements of this execution.",
+      "start": 185.89261099999996,
+      "end": 188.65242999999995,
+      "section": 5
+    },
+    {
+      "text": "The planner's costs are also not milliseconds.",
+      "start": 188.65242999999995,
+      "end": 191.41605799999996,
+      "section": 5
+    },
+    {
+      "text": "They are relative cost units used to choose among alternatives.",
+      "start": 191.41605799999996,
+      "end": 194.93242999999995,
+      "section": 5
+    },
+    {
+      "text": "A lower estimated cost can be informative, but it is not a stopwatch and does not prove the",
+      "start": 194.93242999999995,
+      "end": 200.16517399999995,
+      "section": 5
+    },
+    {
+      "text": "actual query is faster.",
+      "start": 200.16517399999995,
+      "end": 201.88009499999995,
+      "section": 5
+    },
+    {
+      "text": "For a tiny orders table, a sequential scan is often entirely reasonable.",
+      "start": 201.88009499999995,
+      "end": 206.47909699999997,
+      "section": 6
+    },
+    {
+      "text": "Reading a handful of pages can be cheaper than traversing an index and fetching heap rows individually.",
+      "start": 206.47909699999997,
+      "end": 212.03574099999997,
+      "section": 6
+    },
+    {
+      "text": "The primary key on identifier does not imply that every query should use it.",
+      "start": 212.03574099999997,
+      "end": 216.40154599999997,
+      "section": 6
+    },
+    {
+      "text": "We will use much larger and differently distributed fixtures later so you can see the crossover.",
+      "start": 216.40154599999997,
+      "end": 221.80258899999995,
+      "section": 6
+    },
+    {
+      "text": "Good optimization asks which method fits the required rows and the workload.",
+      "start": 221.80258899999995,
+      "end": 225.85837099999995,
+      "section": 6
+    },
+    {
+      "text": "It does not grade every sequential scan as a failure.",
+      "start": 225.85837099999995,
+      "end": 228.85057099999995,
+      "section": 6
+    },
+    {
+      "text": "A plan choice that is excellent for one tenant or parameter can be poor for another.",
+      "start": 228.85057099999995,
+      "end": 233.32875699999994,
+      "section": 6
+    },
+    {
+      "text": "The executor runs the selected plan.",
+      "start": 233.32875699999994,
+      "end": 235.62612699999994,
+      "section": 7
+    },
+    {
+      "text": "Think of the root asking its child for the next result, and the request moving down toward a",
+      "start": 235.62612699999994,
+      "end": 240.86363299999994,
+      "section": 7
+    },
+    {
+      "text": "scan.",
+      "start": 240.86363299999994,
+      "end": 241.60952899999992,
+      "section": 7
+    },
+    {
+      "text": "The scan reads candidates and checks the filter.",
+      "start": 241.60952899999992,
+      "end": 244.26866699999994,
+      "section": 7
+    },
+    {
+      "text": "It emits only matching rows.",
+      "start": 244.26866699999994,
+      "end": 246.05356499999994,
+      "section": 7
+    },
+    {
+      "text": "A sort may have to consume all of its input before it can return the first ordered row.",
+      "start": 246.05356499999994,
+      "end": 250.72907499999994,
+      "section": 7
+    },
+    {
+      "text": "Projection computes the requested values, and the result travels back to the client.",
+      "start": 250.72907499999994,
+      "end": 255.64975499999994,
+      "section": 7
+    },
+    {
+      "text": "The stream of illustrated dots represents this pull based mechanism.",
+      "start": 255.64975499999994,
+      "end": 259.5163309999999,
+      "section": 7
+    },
+    {
+      "text": "It is a teaching model, not a per row trace captured by explain.",
+      "start": 259.5163309999999,
+      "end": 263.4026349999999,
+      "section": 7
+    },
+    {
+      "text": "Real measurements will be shown separately in the plan panel.",
+      "start": 263.4026349999999,
+      "end": 266.5560139999999,
+      "section": 7
+    },
+    {
+      "text": "Now use Explain in the workbench.",
+      "start": 266.5560139999999,
+      "end": 268.68726099999986,
+      "section": 8
+    },
+    {
+      "text": "This asks PostgreSQL for a plan without running the query.",
+      "start": 268.68726099999986,
+      "end": 272.34277099999986,
+      "section": 8
+    },
+    {
+      "text": "Read from the leaves upward to understand where rows originate and how operators transform them.",
+      "start": 272.34277099999986,
+      "end": 277.43501599999985,
+      "section": 8
+    },
+    {
+      "text": "Then use Analyze.",
+      "start": 277.43501599999985,
+      "end": 278.8035869999998,
+      "section": 8
+    },
+    {
+      "text": "Explain analyze really executes the statement and collects execution statistics.",
+      "start": 278.8035869999998,
+      "end": 283.6880309999998,
+      "section": 8
+    },
+    {
+      "text": "In this chapter your learner role can only read the fixture, so a destructive command cannot change it.",
+      "start": 283.6880309999998,
+      "end": 289.2346069999998,
+      "section": 8
+    },
+    {
+      "text": "In later mutation labs, analyze can perform writes and will run only in disposable exercise environments.",
+      "start": 289.2346069999998,
+      "end": 295.8840849999998,
+      "section": 8
+    },
+    {
+      "text": "Never assume that adding explain analyze makes an arbitrary statement harmless.",
+      "start": 295.8840849999998,
+      "end": 300.4069869999998,
+      "section": 8
+    },
+    {
+      "text": "Compare estimated rows with actual rows at the scan.",
+      "start": 300.4069869999998,
+      "end": 303.4833589999998,
+      "section": 9
+    },
+    {
+      "text": "A large mismatch is a clue about selectivity estimates, not automatically proof that an index is missing.",
+      "start": 303.4833589999998,
+      "end": 309.45914099999976,
+      "section": 9
+    },
+    {
+      "text": "Notice rows removed by the filter and the sort's input and output.",
+      "start": 309.45914099999976,
+      "end": 313.0532449999998,
+      "section": 9
+    },
+    {
+      "text": "Counts reported by a node with multiple loops are per loop, so you must interpret them with the",
+      "start": 313.0532449999998,
+      "end": 318.44000199999977,
+      "section": 9
+    },
+    {
+      "text": "loop count.",
+      "start": 318.44000199999977,
+      "end": 319.3034939999998,
+      "section": 9
+    },
+    {
+      "text": "Upper node times and buffer counters can include work beneath them.",
+      "start": 319.3034939999998,
+      "end": 322.9552399999998,
+      "section": 9
+    },
+    {
+      "text": "Do not add every node's numbers and claim that is the total cost.",
+      "start": 322.9552399999998,
+      "end": 326.41841499999975,
+      "section": 9
+    },
+    {
+      "text": "Parallel execution makes naive subtraction even less reliable.",
+      "start": 326.41841499999975,
+      "end": 330.30489999999975,
+      "section": 9
+    },
+    {
+      "text": "We will practice these details repeatedly before the advanced optimizer chapters.",
+      "start": 330.30489999999975,
+      "end": 335.20671399999975,
+      "section": 9
+    },
+    {
+      "text": "There is one more correctness trap in this small example.",
+      "start": 335.20671399999975,
+      "end": 338.2934259999997,
+      "section": 10
+    },
+    {
+      "text": "Null means the value is unknown.",
+      "start": 338.2934259999997,
+      "end": 340.1460339999997,
+      "section": 10
+    },
+    {
+      "text": "Comparing a total with null using equals does not produce true.",
+      "start": 340.1460339999997,
+      "end": 343.7796849999997,
+      "section": 10
+    },
+    {
+      "text": "Use is null when you want unknown totals.",
+      "start": 343.7796849999997,
+      "end": 346.1058069999997,
+      "section": 10
+    },
+    {
+      "text": "Descending order puts nulls first by default, so a top three query may return unknown amounts unless you",
+      "start": 346.1058069999997,
+      "end": 352.23016099999967,
+      "section": 10
+    },
+    {
+      "text": "state the intended policy.",
+      "start": 352.23016099999967,
+      "end": 354.0551039999997,
+      "section": 10
+    },
+    {
+      "text": "A tie also needs a deterministic second key if the exercise asks for a particular order.",
+      "start": 354.0551039999997,
+      "end": 359.3227679999997,
+      "section": 10
+    },
+    {
+      "text": "These choices are part of the result contract.",
+      "start": 359.3227679999997,
+      "end": 361.9680739999997,
+      "section": 10
+    },
+    {
+      "text": "A faster query that changes them is a different query, even when the visible sample happens to look",
+      "start": 361.9680739999997,
+      "end": 367.4911129999997,
+      "section": 10
+    },
+    {
+      "text": "the same.",
+      "start": 367.4911129999997,
+      "end": 368.2731989999997,
+      "section": 10
+    },
+    {
+      "text": "Complete the six exercises after this video.",
+      "start": 368.2731989999997,
+      "end": 371.19864099999967,
+      "section": 11
+    },
+    {
+      "text": "First find paid orders, then handle an unknown total, make a strict amount boundary precise, choose the top",
+      "start": 371.19864099999967,
+      "end": 378.0964189999997,
+      "section": 11
+    },
+    {
+      "text": "three deterministically, project an exact discount, and reconcile matched rows with an aggregate.",
+      "start": 378.0964189999997,
+      "end": 384.0653529999997,
+      "section": 11
+    },
+    {
+      "text": "The grader runs fresh fixture variants, so hardcoding the visible identifiers or adding an accidental limit will not",
+      "start": 384.0653529999997,
+      "end": 390.9389129999997,
+      "section": 11
+    },
+    {
+      "text": "establish correctness.",
+      "start": 390.9389129999997,
+      "end": 392.4797289999997,
+      "section": 11
+    },
+    {
+      "text": "You can run as often as you like.",
+      "start": 392.4797289999997,
+      "end": 394.2950579999997,
+      "section": 11
+    },
+    {
+      "text": "A first submitted attempt unlocks the collapsed explanation even when the query has a syntax error.",
+      "start": 394.2950579999997,
+      "end": 399.6904319999997,
+      "section": 11
+    },
+    {
+      "text": "Reading that explanation does not mark the question passed.",
+      "start": 399.6904319999997,
+      "end": 403.0063499999997,
+      "section": 11
+    },
+    {
+      "text": "Every required question must pass before the next chapter opens.",
+      "start": 403.0063499999997,
+      "end": 406.8807259999997,
+      "section": 11
+    },
+    {
+      "text": "Keep this loop for the rest of the course: define the result, observe the engine, form a hypothesis,",
+      "start": 406.8807259999997,
+      "end": 413.1133339999997,
+      "section": 11
+    },
+    {
+      "text": "change one thing, and verify both correctness and measured work.",
+      "start": 413.1133339999997,
+      "end": 416.95428599999974,
+      "section": 11
+    }
+  ]
+}

@@ -1,0 +1,12 @@
+[workspace]
+members = ["crates/academy-core", "src-tauri"]
+default-members = ["crates/academy-core"]
+resolver = "2"
+
+[workspace.package]
+edition = "2021"
+version = "0.1.0"
+license = "MIT"
+
+[profile.dev]
+debug = 1

@@ -1,0 +1,13 @@
+[package]
+name = "sql-internals-academy"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+[dependencies]
+academy-core = { path = "../crates/academy-core" }
+tauri = { version = "2", features = ["protocol-asset"] }
+serde_json = "1"

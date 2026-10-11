@@ -1,0 +1,12 @@
+target/
+node_modules/
+web/dist/
+.academy/
+src-tauri/resources/postgres/
+web/public/media/
+artifacts/
+*.log
+test-results/
+playwright-report/
+.impeccable/review/
+src-tauri/gen/
