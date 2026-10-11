@@ -531,6 +531,10 @@ mod plan_tests;
 mod tree_tests;
 
 #[cfg(test)]
+#[path = "scan_tests.rs"]
+mod scan_tests;
+
+#[cfg(test)]
 mod tests {
     use super::*;
     #[tokio::test]

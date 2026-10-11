@@ -1,0 +1,106 @@
+{
+  "id": "08",
+  "published": false,
+  "fixture": "scan_orders",
+  "title": "Scan strategies and selective access",
+  "subtitle": "Compare point, cold-key, range, broad and ordered access over 100,000 synthetic orders.",
+  "objectives": [
+    "Connect candidate selection, heap access and result grain",
+    "Inspect available B-tree paths without requiring one physical algorithm",
+    "Preserve unknown amounts in selective and aggregate reports",
+    "Define exact UTC half-open time boundaries",
+    "Read broad input work beneath bounded result output",
+    "Inspect ordered limits and measured evidence across changing distributions"
+  ],
+  "references": [
+    "https://www.postgresql.org/docs/18/using-explain.html",
+    "https://www.postgresql.org/docs/18/indexes-types.html",
+    "https://www.postgresql.org/docs/18/indexes-bitmap-scans.html",
+    "https://www.postgresql.org/docs/18/indexes-ordering.html",
+    "https://www.postgresql.org/docs/18/indexes-index-only-scans.html"
+  ],
+  "exercises": [
+    {
+      "id": "08-01",
+      "title": "Find one primary-key order",
+      "prompt": "Return id, customer_id, status, total and ordered_at for order 45678, in that column order. Preserve an unknown total. Analyze the current SQL and inspect the selected access path, index condition and buffers. Do not add a particular scan type to your result contract.",
+      "starter": "SELECT id, customer_id, status, total, ordered_at\nFROM orders\n-- identify the one required order",
+      "ordered": true,
+      "require_analyze": true,
+      "revision": "08-01-v1-scan-orders-v1-measurement-v1",
+      "solution_sql": "SELECT id,customer_id,status,total,ordered_at FROM orders WHERE id=45678",
+      "explanation": "The primary key identifies one event. Other attributes vary across fixture variants, including its amount becoming unknown. Inspect what PostgreSQL chooses for this predicate; correctness requires the full typed event, not a guessed plan label or memorized sample values."
+    },
+    {
+      "id": "08-02",
+      "title": "Summarize a cold customer by UTC day",
+      "prompt": "For customer 777, return UTC date, order count, count of known totals and sum of known totals for each UTC day with activity. Include all statuses and count orders with unknown amounts. Use numeric zero for an all-null sum. Sort UTC date ascending. Analyze and inspect how the customer restriction reaches the heap.",
+      "starter": "SELECT (ordered_at AT TIME ZONE 'UTC')::date\nFROM orders\n-- restrict and summarize the cold customer's activity\nORDER BY 1;",
+      "ordered": true,
+      "require_analyze": true,
+      "revision": "08-02-v1-scan-orders-v1-measurement-v1",
+      "solution_sql": "SELECT (ordered_at AT TIME ZONE 'UTC')::date,COUNT(*),COUNT(total),COALESCE(SUM(total),0) FROM orders WHERE customer_id=777 GROUP BY 1 ORDER BY 1",
+      "explanation": "The cold key has both known and unknown amounts in every variant. Its daily order count is distinct from known-total count. Filtering out unknown totals before grouping loses events. The available customer index is a path option; inspect the actual choice and the aggregation separately."
+    },
+    {
+      "id": "08-03",
+      "title": "Read a half-open timestamp range",
+      "prompt": "Return id, ordered_at and total for all orders from 2026-01-03 08:00:00+00 inclusive to 2026-01-03 08:30:00+00 exclusive. Preserve unknown totals and all statuses. Sort ordered_at ascending, then id ascending. Analyze the current query and inspect the time restriction and required ordering.",
+      "starter": "SELECT id, ordered_at, total\nFROM orders\n-- define the half-open UTC interval\nORDER BY ordered_at, id;",
+      "ordered": true,
+      "require_analyze": true,
+      "revision": "08-03-v1-scan-orders-v1-measurement-v1",
+      "solution_sql": "SELECT id,ordered_at,total FROM orders WHERE ordered_at>='2026-01-03 08:00:00+00' AND ordered_at<'2026-01-03 08:30:00+00' ORDER BY ordered_at,id",
+      "explanation": "Order 1 is exactly at the start and belongs in the report; order 2 is exactly at the end and must be excluded. Order 3 precedes the start by one second. Additional generated events qualify. Use both bounds explicitly, and preserve the requested complete order regardless of physical access path."
+    },
+    {
+      "id": "08-04",
+      "title": "Account for broad amount selection",
+      "prompt": "Return exactly one row containing the count and sum of totals for every order whose known amount is at least 100. Include every status. Use numeric zero for an empty sum. Analyze and inspect the access path and removed rows if reported; a one-row summary does not imply one input row.",
+      "starter": "SELECT COUNT(*)\nFROM orders\n-- select the broad amount population and sum it",
+      "ordered": true,
+      "require_analyze": true,
+      "revision": "08-04-v1-scan-orders-v1-measurement-v1",
+      "solution_sql": "SELECT COUNT(*),COALESCE(SUM(total),0) FROM orders WHERE total>=100",
+      "explanation": "The amount comparison excludes unknown values and retains matching events across all statuses. There is no authored amount index in this fixture. The complete summary can therefore require substantial input work even though it returns one row. Do not confuse an aggregate result with an access-path event count."
+    },
+    {
+      "id": "08-05",
+      "title": "Combine a hot key and paid status",
+      "prompt": "For paid orders belonging to customer 1, return exactly one row: order count, count of known totals and sum of known totals. Include paid orders with unknown amounts in the order count and use numeric zero for an empty or all-null sum. Analyze and inspect which conditions are used for access and which remain filters.",
+      "starter": "SELECT COUNT(*)\nFROM orders\n-- retain only the hot customer's paid activity and other measures",
+      "ordered": true,
+      "require_analyze": true,
+      "revision": "08-05-v1-scan-orders-v1-measurement-v1",
+      "solution_sql": "SELECT COUNT(*),COUNT(total),COALESCE(SUM(total),0) FROM orders WHERE customer_id=1 AND status='paid'",
+      "explanation": "Both conditions are required, while an unknown amount does not remove an order from the count. Customer and status indexes are available independently. The planner can choose among paths based on this population; having two indexes does not guarantee that it combines them."
+    },
+    {
+      "id": "08-06",
+      "title": "Inspect ordered early termination",
+      "prompt": "Return id, customer_id, status and total for the twenty greatest order ids, in that column order. Include all statuses and unknown totals. Sort by id descending and return exactly twenty rows. Analyze and compare the limit output with the selected operation beneath it.",
+      "starter": "SELECT id, customer_id, status, total\nFROM orders\n-- order greatest ids first before limiting\nLIMIT 20;",
+      "ordered": true,
+      "require_analyze": true,
+      "revision": "08-06-v1-scan-orders-v1-measurement-v1",
+      "solution_sql": "SELECT id,customer_id,status,total FROM orders ORDER BY id DESC LIMIT 20",
+      "explanation": "The primary key supplies a unique ordering key. Each variant still contains 100,000 orders, while returned customer/status/amount attributes vary. A B-tree can support reversed key order, but your result and measured evidence are assessed independently of the chosen node name."
+    }
+  ],
+  "transcript": [
+    "Scan strategies connect the plan tree to the places PostgreSQL obtains rows. This chapter introduces a genuine one-hundred-thousand-order fixture instead of enlarging only a diagram. Each event has a primary id, customer identity, status, exact amount, timestamp and a fixed synthetic payload. The visible hot customer owns sixty-five percent of the orders; fresh assessment variants reduce that share to forty-five and twenty-five percent. Other attributes change too. We will investigate six reports with bounded outputs, so you can account for substantial input work without flooding the result panel. Keep the report contract separate from any access-path prediction you make before execution.",
+    "Open the schema before writing the first query. The orders table has a primary-key B-tree plus separate B-tree indexes on customer identity, timestamp and status. It has no amount index. These are authored fixture objects, and your learner role can read the data but cannot create, drop or change indexes. The payload is one hundred and ninety-two synthetic characters; it gives the heap more width than the earlier inspection fixture. It is not a claim that this course has already demonstrated oversized-value storage or every physical row-layout detail. Each exercise creates its own lab on demand, and Reset restores that lab's starting data.",
+    "Find order forty-five thousand six hundred and seventy-eight by its primary id. Return all five requested columns rather than substituting a count. Explain the current query, then Analyze it and inspect the selected access operation. A direct index path can locate candidate heap rows from key entries; table values and visibility still matter. Use the operation's relation, index name and condition when those fields appear. Your result must preserve an unknown amount in a variant that has one. This makes a memorized visible amount an incorrect solution even though the identity is fixed. The assessment checks the event relation, not whether your screenshot contains a preferred scan label.",
+    "A cold customer's daily summary gives us a less unique selection. Customer seven hundred and seventy-seven has both known and unknown totals in every variant. Three events on January eleven UTC have only unknown totals, so that daily sum must use the requested numeric zero. Count all its events separately from known amounts and form the date explicitly in UTC. Equal dates combine events, while different statuses remain part of the same daily population. In the plan inspector, distinguish the access operation from grouping and ordering above it. Look at where the customer condition appears and what population that operation emits. The customer index provides an option, yet actual path choice remains something to observe. Do not filter out unknown amounts merely to simplify the sum; their order events still belong in the count.",
+    "The timestamp report uses a half-open thirty-minute interval. Its start is inclusive and its end is exclusive. Three authored events make this boundary test concrete: order one sits at the start, order two at the end, and order three one second before the start. Generated events contribute the rest of the population. Return the requested timestamp and amount fields, including unknown amounts, and order by timestamp with id as the final tie-break. Inspect the selected time restriction and any ordering operation. A predicate with the right-looking date can still be wrong at its boundary. Verify the returned ids before drawing conclusions about the path that obtained them.",
+    "The fourth report selects known amounts of at least one hundred across every status. Its result is a single count and sum, but its input is a large part of the fixture. There is no authored amount index to directly support that restriction. A sequential access path can examine heap rows and apply the condition as it goes. If removed-row evidence is reported, keep its operation and loop context with your note. This report is deliberately different from the primary-key lookup: a small result relation does not make the underlying selection narrow. Compare the access populations, not just the root outputs, before claiming that one query performs less work.",
+    "Sequential, direct index and bitmap access are alternatives with different work shapes. A bitmap path collects matching locations before visiting heap pages, and it can combine index-derived locations for multiple conditions. That batching does not preserve the original index order. If your report requires ordered output, inspect how the chosen plan establishes it. A displayed recheck or residual filter is evidence to read, not a synonym for a broken index. Keep candidate selection, heap access and final output distinct in your explanation. The fixture offers several indexes, but the exercises do not require all these node types to appear on every computer or for every formulation of a correct report.",
+    "Combine the hot customer and paid status in the fifth summary. Preserve unknown amounts in the order count and use the known-total count to make that distinction explicit. Both restrictions must hold. Separate customer and status indexes can give the planner several choices, including a combination or using one access condition while checking another later. Their existence alone does not prove combining them is cheapest. The hot share changes across assessment variants, so a path that seems attractive for one distribution is not a universal rule. Record what your visible plan selected and identify where each condition belongs. Later controlled comparisons will provide a stronger experiment for investigating those choices.",
+    "The last report asks for the twenty greatest order ids. Establish descending id order before applying the limit, and include the other requested attributes. A B-tree can provide ordered traversal in either direction. With an appropriate ordered access path, a parent limit can stop asking for more rows once its output requirement is met. That is a possible explanation to verify in the observed plan, not a promise that all top-twenty queries read exactly twenty heap rows or pages. Inspect the operation beneath the limit and its ordering information. Other reports with different order keys or restrictions can require much more work before their first twenty results are available.",
+    "Index access and index-only access need different explanations. A key entry can help find an event without supplying every value or deciding all visibility questions. When an index-only operation is reported, inspect any heap-fetch evidence rather than assuming the heap was never touched. Our later covering-index and visibility-map chapters will investigate that boundary directly. In these exercises, use the columns and properties actually requested and reported. The payload increases fixture width even when it is not projected into your report, while narrow result columns keep the workbench readable. Avoid turning a node label into an undocumented claim about every cache layer, visibility check or storage-device operation involved.",
+    "Measure observations with their proper boundaries. Shared hits and reads describe PostgreSQL buffer activity, and a read into that cache may still be served by the operating system cache. Repeated accesses and parent-child inclusion mean the counters are not an inventory of independent unique pages. Node rows and timing need loop context, while the client elapsed figure includes work outside the executor boundary. Inspect the fields alongside the identified operation instead of adding the whole tree as separate work. We retain the reported evidence and do not generate a fictional executor trace from it. The illustrated mechanical journey is a teaching aid, separate from this measured plan.",
+    "One hundred thousand events make access choices easier to investigate, but they do not make a single timing a reliable benchmark. Cache state, statistics, instrumentation and other activity can affect the observation. The current exercises use no hardware-independent millisecond threshold and no mandatory physical-node name. Their correctness checks use three fresh equally sized distributions, while your Analyze record belongs to your current visible query. Keep a note of the SQL, required result grain, available indexes and observed conditions. A later comparison must control more of the experimental setting than this note alone. Do not advertise a speedup by choosing a convenient first or warm run without its context.",
+    "This profile also has practical limits. Six exercises can leave six local read-only labs, and grading creates temporary assessment copies that are cleaned up. A full-table output reaches the workbench's display cap; the authored reports avoid that by returning one row, daily groups, a short interval or twenty events. Reset recreates the starting fixture and removes current measurement evidence while preserving your script and earned pass. The optional two-million and ten-million profiles are not implemented by calling this one large. Continue to use Explain for predictions and Analyze for executed evidence, and measure changed SQL again before Check. A cancelled or failed measurement supplies no new proof.",
+    "Finish by explaining the primary-key event, cold-customer days, half-open time range, broad amount selection, hot paid population and descending twenty-event result. For each, identify the access operation and connect its output to the report above it. Your SQL must preserve nulls, exact decimals, UTC boundaries, multiplicity and requested order across all three variants. Read the reference explanation after trying, then compare its reasoning with your own observed tree. The next chapter studies joins over intermediate populations; subsequent chapters return to ordering, repeated work and controlled comparisons. These scan investigations establish a concrete data and evidence foundation for the advanced optimizer work still ahead."
+  ]
+}

@@ -59,5 +59,22 @@
     "writable_tables": [
       "orders"
     ]
+  },
+  "scan_orders": {
+    "title": "100k scan orders",
+    "description": "100,000 read-only synthetic orders with 192-character payloads, exact decimal amounts, unknown totals and fixed UTC time boundaries. The visible hot customer 1 owns 65% of orders; fresh variants change this to 45% and 25%. Customer 777 has both known and unknown totals, including three all-null events on January 11 UTC. B-tree indexes: primary id, customer_id, ordered_at and status. Each exercise creates its own disposable lab on demand; Reset restores it. This is the 100k interactive profile, not the optional 2m/10m profiles.",
+    "tables": [
+      {
+        "name": "orders",
+        "columns": {
+          "id": "integer · primary key",
+          "customer_id": "integer · 1 through 998",
+          "status": "text · checked status",
+          "total": "numeric(20,2) · nullable / nonnegative",
+          "ordered_at": "timestamptz · not null",
+          "payload": "text · 192 synthetic characters"
+        }
+      }
+    ]
   }
 }

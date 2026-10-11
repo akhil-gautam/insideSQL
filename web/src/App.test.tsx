@@ -1,5 +1,7 @@
 import {afterEach,expect,test,vi} from 'vitest';
 import {cleanup,fireEvent,render,screen,waitFor} from '@testing-library/react';
+import {EditorView} from '@codemirror/view';
+import {CompletionContext,type CompletionSource} from '@codemirror/autocomplete';
 import type {Progress} from './types';
 import chapter01 from '../../course/chapter01.json';
 import chapter02 from '../../course/chapter02.json';
@@ -14,8 +16,8 @@ Range.prototype.getClientRects=()=>[] as unknown as DOMRectList;
 Range.prototype.getBoundingClientRect=()=>new DOMRect();
 afterEach(()=>{cleanup();vi.clearAllMocks();vi.unstubAllGlobals();});
 
-function start({published=true,passes=true,exerciseCount=6,nativeRoot,commerce=false,writes=false,measurement=false,moduleTwo=false}:{published?:boolean;passes?:boolean;exerciseCount?:number;nativeRoot?:string;commerce?:boolean;writes?:boolean;measurement?:boolean;moduleTwo?:boolean}={}){
-  const chapters=[{...chapter01,fixture:'orders'},{...chapter02,fixture:writes?'commerce_writes':'orders',published,exercises:chapter02.exercises.slice(0,exerciseCount).map(e=>({...e,require_analyze:measurement}))},...(commerce?[{...chapter03,published:true}]:[])];
+function start({published=true,passes=true,exerciseCount=6,nativeRoot,commerce=false,writes=false,measurement=false,moduleTwo=false,scans=false}:{published?:boolean;passes?:boolean;exerciseCount?:number;nativeRoot?:string;commerce?:boolean;writes?:boolean;measurement?:boolean;moduleTwo?:boolean;scans?:boolean}={}){
+  const chapters=[{...chapter01,fixture:'orders'},{...chapter02,fixture:writes?'commerce_writes':scans?'scan_orders':'orders',published,exercises:chapter02.exercises.slice(0,exerciseCount).map(e=>({...e,require_analyze:measurement}))},...(commerce?[{...chapter03,published:true}]:[])];
   if(moduleTwo){
     for(let i=3;i<=7;i++)chapters.push({...chapter02,fixture:'orders',id:String(i).padStart(2,'0'),published:i===7||published,title:i===7?'Plan trees and estimates':`Chapter ${i}`,exercises:chapter02.exercises.map(e=>({...e,id:e.id.replace('02-',`${String(i).padStart(2,'0')}-`)}))});
   }
@@ -142,4 +144,20 @@ test('chapter seven belongs to Plans and remains gated by all earlier published 
  cleanup();vi.clearAllMocks();
  start({moduleTwo:true,published:false});
  expect((await screen.findByRole('button',{name:/Chapter 7:/})).hasAttribute('disabled')).toBe(true);
+});
+
+test('100k scan fixture exposes payload metadata and column completion',async()=>{
+ start({scans:true});
+ fireEvent.click(await screen.findByRole('button',{name:/Chapter 2:/}));
+ fireEvent.click(screen.getByRole('button',{name:'100k scan orders schema'}));
+ expect(screen.getByText(fixtureCatalog.scan_orders.description)).toBeTruthy();
+ expect(document.querySelector('.schema code')?.textContent).toContain('payload text');
+ const editor=screen.getByRole('textbox',{name:'SQL query'});
+ const query='SELECT orders.pay';
+ const view=EditorView.findFromDOM(editor)!;
+ view.dispatch({changes:{from:0,to:view.state.doc.length,insert:query},selection:{anchor:query.length}});
+ await waitFor(()=>expect(view.state.doc.toString()).toBe(query));
+ const sources=view.state.languageDataAt<CompletionSource>('autocomplete',query.length);
+ const completions=await Promise.all(sources.map(source=>source(new CompletionContext(view.state,query.length,true))));
+ expect(completions.flatMap(result=>result?.options.map(option=>option.label)??[])).toContain('payload');
 });

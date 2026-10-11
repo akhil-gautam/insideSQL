@@ -7,6 +7,7 @@ pub enum Fixture {
     Orders,
     Commerce,
     CommerceWrites,
+    ScanOrders,
 }
 
 impl Fixture {
@@ -17,6 +18,7 @@ impl Fixture {
         let source = match self {
             Self::Orders => include_str!("../../../course/fixtures/orders.sql").to_owned(),
             Self::Commerce => include_str!("../../../course/fixtures/commerce.sql").to_owned(),
+            Self::ScanOrders => include_str!("../../../course/fixtures/scan-orders.sql").to_owned(),
             Self::CommerceWrites => format!(
                 "{}\n{}",
                 include_str!("../../../course/fixtures/commerce.sql"),
