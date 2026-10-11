@@ -8,6 +8,7 @@ pub enum Fixture {
     Commerce,
     CommerceWrites,
     ScanOrders,
+    JoinOrders,
 }
 
 impl Fixture {
@@ -19,6 +20,11 @@ impl Fixture {
             Self::Orders => include_str!("../../../course/fixtures/orders.sql").to_owned(),
             Self::Commerce => include_str!("../../../course/fixtures/commerce.sql").to_owned(),
             Self::ScanOrders => include_str!("../../../course/fixtures/scan-orders.sql").to_owned(),
+            Self::JoinOrders => format!(
+                "{}\n{}",
+                include_str!("../../../course/fixtures/scan-orders.sql"),
+                include_str!("../../../course/fixtures/join-orders.sql")
+            ),
             Self::CommerceWrites => format!(
                 "{}\n{}",
                 include_str!("../../../course/fixtures/commerce.sql"),

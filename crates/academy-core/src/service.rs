@@ -535,6 +535,10 @@ mod tree_tests;
 mod scan_tests;
 
 #[cfg(test)]
+#[path = "join_tests.rs"]
+mod join_tests;
+
+#[cfg(test)]
 mod tests {
     use super::*;
     #[tokio::test]

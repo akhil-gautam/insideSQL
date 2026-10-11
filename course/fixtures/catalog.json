@@ -76,5 +76,49 @@
         }
       }
     ]
+  },
+  "join_orders": {
+    "title": "100k relational orders",
+    "description": "Read-only synthetic commerce: 1,000 customers, 100,000 orders, over 200k line items and over 180k payment events. Reuses the scan profile with hot customer 1 at 65% / 45% / 25% across variants. Names repeat; customers 999 and 1000 have no orders. Child rows include missing relationships, repeated identical values, mixed payment statuses and one unassigned captured payment. Every matched child has a validated foreign key and indexed order_id. Separate child rollups preserve physical row multiplicity. Each exercise owns a disposable lab; Reset restores it. This is the 100k interactive profile; larger profiles remain outstanding.",
+    "tables": [
+      {
+        "name": "customers",
+        "columns": {
+          "id": "integer · primary key",
+          "name": "text · not null / repeated values"
+        }
+      },
+      {
+        "name": "orders",
+        "columns": {
+          "id": "integer · primary key",
+          "customer_id": "integer · foreign key → customers.id / 1 through 998",
+          "status": "text · checked status",
+          "total": "numeric(20,2) · nullable / nonnegative",
+          "ordered_at": "timestamptz · not null",
+          "payload": "text · 192 synthetic characters"
+        }
+      },
+      {
+        "name": "order_items",
+        "columns": {
+          "id": "integer · primary key",
+          "order_id": "integer · foreign key / not null",
+          "sku": "text · not null",
+          "quantity": "integer · positive",
+          "unit_price": "numeric(20,2) · nonnegative / not null"
+        }
+      },
+      {
+        "name": "payments",
+        "columns": {
+          "id": "integer · primary key",
+          "order_id": "integer · nullable foreign key",
+          "status": "text · checked status",
+          "amount": "numeric(20,2) · nonnegative / not null",
+          "occurred_at": "timestamptz · not null"
+        }
+      }
+    ]
   }
 }

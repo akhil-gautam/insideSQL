@@ -1,0 +1,109 @@
+{
+  "id": "09",
+  "published": false,
+  "fixture": "join_orders",
+  "title": "Join strategies and intermediate populations",
+  "subtitle": "Investigate matching, preservation, existence, absence and fanout across 100,000 orders and their children.",
+  "objectives": [
+    "Separate logical join requirements from physical matching algorithms",
+    "Inspect outer/inner inputs, conditions, loops and hash/merge support",
+    "Preserve all identities and correctly count outer matches",
+    "Write existence and absence reports with safe null semantics",
+    "Account for physical line multiplicity and exact money",
+    "Combine independent child rollups without multiplying either population"
+  ],
+  "references": [
+    "https://www.postgresql.org/docs/18/using-explain.html",
+    "https://www.postgresql.org/docs/18/queries-table-expressions.html",
+    "https://www.postgresql.org/docs/18/functions-subquery.html",
+    "https://www.postgresql.org/docs/18/explicit-joins.html",
+    "https://www.postgresql.org/docs/18/runtime-config-query.html",
+    "https://github.com/postgres/postgres/blob/REL_18_3/src/backend/executor/nodeNestloop.c",
+    "https://github.com/postgres/postgres/blob/REL_18_3/src/backend/executor/nodeHashjoin.c",
+    "https://github.com/postgres/postgres/blob/REL_18_3/src/backend/executor/nodeMergejoin.c"
+  ],
+  "exercises": [
+    {
+      "id": "09-01",
+      "title": "Match cold orders to customer names",
+      "prompt": "Return order id, customer name, order status and order total for every order belonging to customer 777. Preserve unknown totals and repeated names. Sort order id ascending. Analyze and inspect the matching operation, both inputs and any repeated inner work.",
+      "starter": "SELECT o.id, c.name, o.status, o.total\nFROM orders o\n-- match customer identity and restrict the cold customer\nORDER BY o.id;",
+      "ordered": true,
+      "require_analyze": true,
+      "revision": "09-01-v1-join-orders-v1-measurement-v1",
+      "solution_sql": "SELECT o.id,c.name,o.status,o.total FROM orders o JOIN customers c ON c.id=o.customer_id WHERE o.customer_id=777 ORDER BY o.id",
+      "explanation": "The customer key identifies the matching name; the order remains the result grain. Unknown amounts do not discard events. The fixed cold customer is present in every distribution, while its events and label can vary. A repeated customer name is not a join key."
+    },
+    {
+      "id": "09-02",
+      "title": "Preserve every customer in a paid summary",
+      "prompt": "Return customer id, name, paid-order count, count of known paid-order totals and sum of known paid-order totals for all 1,000 customers. Count paid orders with unknown amounts as events. Customers without paid orders must have zero counts and numeric zero sum. Sort customer id ascending. Analyze and inspect the preserved side and join type.",
+      "starter": "SELECT c.id, c.name\nFROM customers c\n-- preserve all customers while summarizing paid orders\nORDER BY c.id;",
+      "ordered": true,
+      "require_analyze": true,
+      "revision": "09-02-v1-join-orders-v1-measurement-v1",
+      "solution_sql": "SELECT c.id,c.name,COUNT(o.id),COUNT(o.total),COALESCE(SUM(o.total),0) FROM customers c LEFT JOIN orders o ON o.customer_id=c.id AND o.status='paid' GROUP BY c.id,c.name ORDER BY c.id",
+      "explanation": "The paid restriction belongs to the matching population while customers remain preserved. COUNT of the matched order key ignores the null-extended unmatched row; COUNT(*) does not. COUNT(total) records known amounts separately. Grouping by identity retains customers with repeated names."
+    },
+    {
+      "id": "09-03",
+      "title": "Count orders with qualifying line existence",
+      "prompt": "Return exactly one row: paid-order count, count of known totals and sum of known totals for paid orders with at least one line whose quantity is at least three. Each order counts once even with several qualifying lines. Include qualifying orders with unknown totals in the event count and use numeric zero for an empty or all-null sum. Analyze and inspect existence handling.",
+      "starter": "SELECT COUNT(*)\nFROM orders o\n-- select paid orders with qualifying line existence",
+      "ordered": true,
+      "require_analyze": true,
+      "revision": "09-03-v1-join-orders-v1-measurement-v1",
+      "solution_sql": "SELECT COUNT(*),COUNT(o.total),COALESCE(SUM(o.total),0) FROM orders o WHERE o.status='paid' AND EXISTS(SELECT 1 FROM order_items i WHERE i.order_id=o.id AND i.quantity>=3)",
+      "explanation": "An existence condition qualifies an order without importing the multiplicity of its lines. The fixture deliberately contains paid orders with multiple qualifying lines. A plain line join followed by counting or summing the order repeats its measures."
+    },
+    {
+      "id": "09-04",
+      "title": "Find hot paid activity without captured payments",
+      "prompt": "For paid orders of customer 1 that have no captured payment, return UTC date, order count, count of known totals and sum of known totals for each UTC date with activity. Failed or refunded payments do not count as captured. Include unknown order totals in the event count, use numeric zero for an all-null sum, and sort UTC date ascending. Analyze the absence test.",
+      "starter": "SELECT (o.ordered_at AT TIME ZONE 'UTC')::date\nFROM orders o\n-- qualify the hot paid population by absence of a captured payment\nORDER BY 1;",
+      "ordered": true,
+      "require_analyze": true,
+      "revision": "09-04-v1-join-orders-v1-measurement-v1",
+      "solution_sql": "SELECT (o.ordered_at AT TIME ZONE 'UTC')::date,COUNT(*),COUNT(o.total),COALESCE(SUM(o.total),0) FROM orders o WHERE o.customer_id=1 AND o.status='paid' AND NOT EXISTS(SELECT 1 FROM payments p WHERE p.order_id=o.id AND p.status='captured') GROUP BY 1 ORDER BY 1",
+      "explanation": "Correlated absence tests the current order. The unassigned captured payment has no order identity and cannot match one. NOT IN over this nullable payment key makes nonmatches unknown; it is not equivalent to the required absence rule. Define the date in UTC independently of the session zone."
+    },
+    {
+      "id": "09-05",
+      "title": "Aggregate paid physical lines by SKU",
+      "prompt": "For every SKU appearing on paid orders, return SKU, physical line count, total quantity and total line value (quantity times unit_price). Include every physical line even if several have identical values. Sort SKU ascending. Return total quantity as bigint and line value as numeric. Analyze the order-to-line join before grouping.",
+      "starter": "SELECT i.sku\nFROM order_items i\n-- match paid orders and aggregate physical line measures\nORDER BY i.sku;",
+      "ordered": true,
+      "require_analyze": true,
+      "revision": "09-05-v1-join-orders-v1-measurement-v1",
+      "solution_sql": "SELECT i.sku,COUNT(*),SUM(i.quantity),SUM(i.quantity*i.unit_price) FROM order_items i JOIN orders o ON o.id=i.order_id WHERE o.status='paid' GROUP BY i.sku ORDER BY i.sku",
+      "explanation": "This report intentionally has line grain before grouping. Each line belongs to one order through its foreign key. Equal quantities and prices are still separate lines; SUM(DISTINCT ...) would lose legitimate repeated value. Use the line value, not the repeated parent order total."
+    },
+    {
+      "id": "09-06",
+      "title": "Combine independent child rollups safely",
+      "prompt": "For every order of customer 777, return order id, its original nullable total, physical line count, total line quantity as bigint, captured-payment count and captured-payment amount as numeric. Missing children use zero measures. Failed/refunded and unassigned payments must not contribute. Sort order id ascending. Analyze the aggregation and joining of independent child populations.",
+      "starter": "SELECT o.id, o.total\nFROM orders o\n-- combine line and captured-payment measures without multiplying either\nORDER BY o.id;",
+      "ordered": true,
+      "require_analyze": true,
+      "revision": "09-06-v1-join-orders-v1-measurement-v1",
+      "solution_sql": "WITH lines AS (SELECT order_id,COUNT(*) AS line_count,SUM(quantity) AS units FROM order_items GROUP BY order_id), receipts AS (SELECT order_id,COUNT(*) AS receipt_count,SUM(amount) AS received FROM payments WHERE status='captured' GROUP BY order_id) SELECT o.id,o.total,COALESCE(l.line_count,0),COALESCE(l.units,0),COALESCE(p.receipt_count,0),COALESCE(p.received,0) FROM orders o LEFT JOIN lines l ON l.order_id=o.id LEFT JOIN receipts p ON p.order_id=o.id WHERE o.customer_id=777 ORDER BY o.id",
+      "explanation": "A direct join of independent lines and payments can form m times n combinations per order. Reduce each child population to one row per order before combining its measures, or use another equivalent formulation that preserves multiplicity. Identical-value children count separately, and the original unknown parent amount remains unknown."
+    }
+  ],
+  "transcript": [
+    "Join strategies connect the access paths from the previous chapter to relationships between substantial populations. Our new fixture keeps the same one hundred thousand orders and adds one thousand customer identities, more than two hundred thousand physical lines and more than one hundred eighty thousand payment events. It remains synthetic and read-only. Customers have repeated display names, and two authored identities have no orders. Several orders have no lines or no payments; other orders have multiple children with equal values. One captured payment has no assigned order. Those cases make the result contract observable instead of allowing a convenient join to look correct on a friendly sample.",
+    "Start with the grain of each exercise. The first report returns orders with names. The second preserves customers and adds paid-order measures. The third qualifies orders by whether a suitable line exists. The fourth qualifies a hot customer's paid orders by absence of a captured receipt. The fifth deliberately counts physical lines within SKU groups. The sixth returns orders alongside two independent child summaries. These are different contracts even when the same four tables appear in their SQL. Every report has bounded output, at most one thousand rows, while its inputs can contain hundreds of thousands. Write the required relation before deciding which physical strategy might obtain it.",
+    "A nested-loop implementation takes rows from one input and asks the other input for matches. In the cold-customer report, a customer-key lookup and selective order access can make repeated matching inexpensive. Inspect which operation is actually outer, what the inner operation receives, and its reported loops. An inner index condition may use the current outer key; a repeated full scan would have a different work profile. The label Nested Loop alone does not establish a defect or a success. Connect the chosen access operations to the particular customer population. Our cold customer's unknown amounts still belong in its event report, whatever matching procedure the engine selects.",
+    "A hash join prepares a key structure from one input and uses the other input to look for matches. Inspect the Hash child rather than guessing the build side from the order of tables in the SQL. The measured plan can report buckets, batches and memory, as well as the matching condition. These details belong to the selected execution, not an invented ideal diagram. Building a structure can be worthwhile for a broad relationship, but it still consumes work and memory. A compact final customer summary can sit above a large join population. Later executor lessons will investigate batching and spills more deeply; this chapter does not claim every run demonstrates a spill.",
+    "A merge join consumes inputs ordered compatibly with its matching keys. The inputs may obtain that order from access paths or from explicit sorting. Repeated keys require the matching multiplicity to survive; merging is not a deduplication operation. Inspect both children, the merge condition and any supporting sort or materialization operations. An input ordered by customer identity does not establish the requested final order by event identity. The cold event report still explicitly orders its output by order id. Compare this procedure with nested matching and hashing as ways to obtain a relationship, while keeping the required rows and values fixed. No particular algorithm is mandatory for passing the exercise.",
+    "Separate logical join type from physical join method. Inner matching, preservation, existence and absence describe required relationships; nested loop, hash and merge describe implementations available for suitable relationships. PostgreSQL can reorder eligible inner joins and transform expressions, so left-to-right SQL text is not a trace of execution. Outer preservation imposes additional semantic constraints. A predicate moved across that boundary can change rows before it changes performance. Follow relation names, aliases and conditions in the operation inspector, then compare the root output with your contract. Do not sum child times into a fabricated total or assume that an illustrated route records the selected database operations.",
+    "The all-customer paid summary makes preservation concrete. The report has one row for each of the one thousand customer identities, including customers nine hundred ninety-nine and one thousand. Count matched order identities separately from known amounts. An unmatched preserved customer contributes a null-extended row to a left join, so COUNT star would report one rather than zero events there. Keep the paid restriction within the population that matches to customers. Moving it into a post-join filter can discard the very customers that must remain. Sum known paid amounts with the requested zero convention, and group by the customer identity instead of collapsing customers who share a display name.",
+    "The qualifying-line report asks whether a paid order has at least one line with quantity three or greater. It does not ask for one output occurrence per qualifying line. The fixture guarantees multiple qualifying lines on some paid orders, so a direct join followed by summing the order amount can overcount both events and money. An existence formulation states the order-level qualification clearly; another formulation is acceptable if it preserves the same complete result. Inspect whether the plan represents the condition as a semi relationship, a subplan or another equivalent structure. The scalar aggregate returns one row after qualification. Its one-row output says nothing by itself about the amount of input matching.",
+    "The hot-customer absence report includes paid orders with no captured payment. A failed receipt is not a captured one, and a refunded event is not captured either. The unassigned captured receipt deliberately has a null order key. It cannot satisfy the correlated matching condition for any actual order. A nullable NOT IN subquery has different three-valued behavior: a nonmatching order can receive an unknown predicate result instead of true. That would lose the required absence population. Keep the relationship tied to the current order and form each activity date explicitly in UTC. The hot population changes across grading distributions, so memorizing the visible dates or counts cannot satisfy the assessment.",
+    "The SKU report intentionally crosses into physical line grain. Match lines to their paid parent orders and account for every line occurrence. Count line events, add their quantities as bigint and add quantity times unit price as exact numeric value. Two rows with equal SKU, quantity and price remain two physical lines because their identities differ. A distinct-value sum cannot serve as a generic repair for duplicated-looking data. Likewise, importing the parent total into this aggregate would measure a different thing. Inspect the join output before the grouping operation. A small number of SKU rows is a reduction of the matched line population, not evidence that only a few base records were examined.",
+    "The final cold-order report combines two independent child populations. If an order has m lines and n captured payments, joining both raw child relations can create m times n matching combinations. Each line's units and each payment's amount can then repeat in the aggregate. Summarize the lines to one row per order and summarize captured receipts to one row per order before combining their measures, or use an equivalent method that enforces those grains. Our cold order ninety-seven has duplicate-valued lines and captured receipts to expose this error. Preserve its original unknown order amount. Missing child populations become zero measures; equal-valued real children still count independently.",
+    "The fixture supplies real options for matching: primary keys on every identity, order customer access, and indexed child order keys. Its foreign keys validate assigned relationships; the nullable unassigned receipt remains intentional. These are authored setup objects, and your learner connection can read them but cannot modify data or create indexes. The visible hot customer owns sixty-five percent of orders; fresh assessment variants lower that to forty-five and twenty-five percent. Child quantities, prices, statuses and names also vary. A plan chosen for the visible population is evidence about that population. It is not a promise that the same path dominates every distribution, memory setting or machine.",
+    "For an algorithm comparison, preserve SQL meaning and change one experimental condition at a time. Our validation uses separate test-owned sessions to inspect nested-loop, hash and merge alternatives for the same bounded order-to-customer relation. Those experiments verify identical results rather than declare one algorithm universally faster. Planner method switches can discourage choices, and some operations cannot be suppressed completely. They are investigative controls, not permanent application fixes or learner grading requirements. Later controlled-comparison lessons will add a richer workflow for repeated measurements. Here, your workbench records the successful Analyze of the current SQL and lets you inspect the actual operations without exposing setup credentials or reference databases.",
+    "Before submitting, check the meaning and the evidence together. Verify preserved identities, count grain, unknown amounts, UTC dates, duplicate multiplicity and the requested output order. Explain supplies estimates; Analyze executes and supplies measured rows, loops and buffers. Editing or resetting requires a fresh measurement before Check, while an initial meaningful attempt makes the collapsed solution available. Assessment runs fresh distributions and compares complete typed reports. Each exercise owns its disposable lab, and Reset reconstructs its baseline. The cinematic mechanisms remain labelled illustrations. With matching and grain accounted for, the next chapter will inspect the sort and aggregate operations that turn these populations into ordered reports."
+  ]
+}
