@@ -400,7 +400,10 @@ async fn six_scan_queries_match_independent_results_on_every_distribution() {
             .rows,
         before
     );
-    assert_eq!(academy.progress().unwrap()["08-01"]["analyzed"], false);
+    assert_eq!(
+        academy.progress().await.unwrap()["08-01"]["analyzed"],
+        false
+    );
     let admin = academy
         .cluster
         .connect("postgres", "academy_admin")

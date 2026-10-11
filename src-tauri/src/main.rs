@@ -18,8 +18,8 @@ fn course(app: State<AppState>, handle: tauri::AppHandle) -> Result<Value, Strin
     Ok(course)
 }
 #[tauri::command]
-fn progress(app: State<AppState>) -> Result<Value, String> {
-    app.progress()
+async fn progress(app: State<'_, AppState>) -> Result<Value, String> {
+    app.progress().await
 }
 #[tauri::command]
 async fn resources(app: State<'_, AppState>, id: String) -> Result<Value, String> {

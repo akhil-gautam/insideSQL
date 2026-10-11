@@ -1,6 +1,7 @@
 use crate::{fixtures::Fixture, Result};
 use sha2::{Digest, Sha256};
 use std::{
+    collections::HashMap,
     fs::{self, File},
     net::TcpListener,
     path::{Path, PathBuf},
@@ -13,6 +14,7 @@ pub struct Cluster {
     pub root: PathBuf,
     pub port: u16,
     password: String,
+    system_identifier: String,
     bin: PathBuf,
     child: Mutex<Option<Child>>,
     pub(crate) minimum_free_disk_bytes: u64,
@@ -113,10 +115,11 @@ impl Cluster {
             .stderr(Stdio::from(log))
             .spawn()
             .map_err(|e| e.to_string())?;
-        let cluster = Self {
+        let mut cluster = Self {
             root,
             port,
             password,
+            system_identifier: String::new(),
             bin,
             child: Mutex::new(Some(child)),
             minimum_free_disk_bytes,
@@ -124,6 +127,14 @@ impl Cluster {
         for _ in 0..200 {
             if let Ok(admin) = cluster.connect("postgres", "academy_admin").await {
                 admin.batch_execute("REVOKE CONNECT ON DATABASE postgres FROM PUBLIC; REVOKE CONNECT ON DATABASE template1 FROM PUBLIC; REVOKE CONNECT ON DATABASE template0 FROM PUBLIC;").await.map_err(|e|e.to_string())?;
+                cluster.system_identifier = admin
+                    .query_one(
+                        "SELECT system_identifier::text FROM pg_catalog.pg_control_system()",
+                        &[],
+                    )
+                    .await
+                    .map_err(|e| e.to_string())?
+                    .get(0);
                 return Ok(cluster);
             }
             tokio::time::sleep(Duration::from_millis(50)).await;
@@ -146,6 +157,31 @@ impl Cluster {
         });
         client.batch_execute("SET statement_timeout='8s'; SET lock_timeout='2s'; SET idle_in_transaction_session_timeout='10s'; SET timezone='UTC'; SET datestyle='ISO, YMD';").await.map_err(|e|e.to_string())?;
         Ok(client)
+    }
+    pub(crate) async fn connection_identity(&self, client: &Client) -> Result<String> {
+        let oid:u32 = client.query_one("SELECT oid FROM pg_catalog.pg_database WHERE datname=pg_catalog.current_database()",&[]).await.map_err(|e|e.to_string())?.get(0);
+        Ok(format!("{}:{oid}", self.system_identifier))
+    }
+    pub(crate) async fn lab_identities(
+        &self,
+        databases: &[String],
+    ) -> Result<HashMap<String, String>> {
+        let admin = self.connect("postgres", "academy_admin").await?;
+        let rows = admin
+            .query(
+                "SELECT datname,oid FROM pg_catalog.pg_database WHERE datname=ANY($1)",
+                &[&databases],
+            )
+            .await
+            .map_err(|e| e.to_string())?;
+        Ok(rows
+            .into_iter()
+            .map(|row| {
+                let database: String = row.get(0);
+                let oid: u32 = row.get(1);
+                (database, format!("{}:{oid}", self.system_identifier))
+            })
+            .collect())
     }
     fn check_disk_space(root: &Path, minimum: u64) -> Result<u64> {
         let available = crate::resources::available_disk_bytes(root)?;

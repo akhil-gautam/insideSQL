@@ -210,7 +210,10 @@ async fn cancelled_analysis_does_not_supply_measurement_evidence() {
         task.await.unwrap().error.unwrap().code.as_deref(),
         Some("57014")
     );
-    assert_eq!(academy.progress().unwrap()["02-01"]["analyzed"], false);
+    assert_eq!(
+        academy.progress().await.unwrap()["02-01"]["analyzed"],
+        false
+    );
     assert!(
         !academy
             .check(request("02-01", "SELECT pg_sleep(20)", "run"))
@@ -266,7 +269,7 @@ async fn measured_evidence_is_required_and_bound_to_current_sql_revision_and_lab
         academy.solution(&e.id).unwrap().is_some(),
         "Check still unlocks an answer before Analyze"
     );
-    assert!(!academy.progress().unwrap()[&e.id]["analyzed"]
+    assert!(!academy.progress().await.unwrap()[&e.id]["analyzed"]
         .as_bool()
         .unwrap());
     academy.run(request(&e.id, &sql, "explain")).await.unwrap();
@@ -304,7 +307,7 @@ async fn measured_evidence_is_required_and_bound_to_current_sql_revision_and_lab
     );
     let alternative = format!("{sql} -- same result, independently measured SQL");
     academy.save(&e.id, &alternative).unwrap();
-    assert_eq!(academy.progress().unwrap()[&e.id]["analyzed"], false);
+    assert_eq!(academy.progress().await.unwrap()[&e.id]["analyzed"], false);
     assert!(
         !academy
             .check(request(&e.id, &alternative, "run"))
@@ -338,7 +341,7 @@ async fn measured_evidence_is_required_and_bound_to_current_sql_revision_and_lab
     let mut reopened = Academy::start(home.path(), &runtime).await.unwrap();
     require_measurement(&mut reopened);
     assert_eq!(
-        reopened.progress().unwrap()[&e.id]["analyzed"],
+        reopened.progress().await.unwrap()[&e.id]["analyzed"],
         true,
         "Evidence survives reopening"
     );
@@ -350,7 +353,7 @@ async fn measured_evidence_is_required_and_bound_to_current_sql_revision_and_lab
             .passed
     );
     reopened.reset(&e.id).await.unwrap();
-    assert_eq!(reopened.progress().unwrap()[&e.id]["analyzed"], false);
+    assert_eq!(reopened.progress().await.unwrap()[&e.id]["analyzed"], false);
     assert_eq!(
         reopened.store.script(&e.id).unwrap().as_deref(),
         Some(alternative.as_str())

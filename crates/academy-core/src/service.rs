@@ -163,11 +163,32 @@ impl Academy {
             "temp_file_limit":row.get::<_,String>(3)
         }))
     }
-    pub fn progress(&self) -> Result<Value> {
+    pub async fn progress(&self) -> Result<Value> {
+        let _guard = self.lifecycle.read().await;
+        let databases: Vec<String> = self
+            .chapters
+            .iter()
+            .flat_map(|c| &c.exercises)
+            .map(|e| format!("lab_{}", e.id.replace('-', "_")))
+            .collect();
+        let current = self.cluster.lab_identities(&databases).await?;
         let mut result = serde_json::Map::new();
         for e in self.chapters.iter().flat_map(|c| &c.exercises) {
             let sql = self.store.script(&e.id)?;
-            result.insert(e.id.clone(),json!({"unlocked":self.store.unlocked(&e.id)?,"passed":self.store.passed(&e.id,&e.revision)?,"sql":sql,"analyzed":self.store.has_analysis(&e.id,&e.revision,sql.as_deref().unwrap_or(""))?}));
+            let database = format!("lab_{}", e.id.replace('-', "_"));
+            let analyzed = current
+                .get(&database)
+                .map(|identity| {
+                    self.store.has_analysis_for_lab(
+                        &e.id,
+                        &e.revision,
+                        sql.as_deref().unwrap_or(""),
+                        identity,
+                    )
+                })
+                .transpose()?
+                .unwrap_or(false);
+            result.insert(e.id.clone(),json!({"unlocked":self.store.unlocked(&e.id)?,"passed":self.store.passed(&e.id,&e.revision)?,"sql":sql,"analyzed":analyzed}));
         }
         Ok(Value::Object(result))
     }
@@ -260,11 +281,13 @@ impl Academy {
             if let Ok(measured) = &result {
                 if measured.error.is_none() && !measured.truncated && !*active.cancelled.borrow() {
                     if let Some(plan) = &measured.plan {
-                        self.store.record_analysis(
+                        let identity = self.cluster.connection_identity(&client).await?;
+                        self.store.record_analysis_for_lab(
                             &exercise.id,
                             &exercise.revision,
                             &request.sql,
                             plan,
+                            &identity,
                         )?;
                     }
                 }
@@ -282,7 +305,21 @@ impl Academy {
         if !self.store.attempt(&e.id, &request.sql, &e.starter)? {
             return Err("Write a query before checking".into());
         }
-        if e.require_analyze && !self.store.has_analysis(&e.id, &e.revision, &request.sql)? {
+        let (db, _) = self.names(&e.id)?;
+        let measured = if e.require_analyze {
+            let current = self.cluster.lab_identities(&[db.clone()]).await?;
+            current
+                .get(&db)
+                .map(|identity| {
+                    self.store
+                        .has_analysis_for_lab(&e.id, &e.revision, &request.sql, identity)
+                })
+                .transpose()?
+                .unwrap_or(false)
+        } else {
+            true
+        };
+        if !measured {
             return Ok(CheckResult {
                 passed: false,
                 variants_passed: 0,
@@ -573,6 +610,10 @@ mod sort_aggregate_tests;
 #[cfg(test)]
 #[path = "resource_tests.rs"]
 mod resource_tests;
+
+#[cfg(test)]
+#[path = "analysis_identity_tests.rs"]
+mod analysis_identity_tests;
 
 #[cfg(test)]
 mod tests {

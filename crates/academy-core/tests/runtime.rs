@@ -92,7 +92,7 @@ async fn real_postgres_execution_permissions_grading_reset_and_resume() {
     assert!(huge.truncated);
     assert_eq!(huge.rows.len(), 1000);
     academy.reset("01-01").await.unwrap();
-    assert!(academy.progress().unwrap()["01-01"]["passed"]
+    assert!(academy.progress().await.unwrap()["01-01"]["passed"]
         .as_bool()
         .unwrap());
     academy.shutdown().await.unwrap();
@@ -101,7 +101,7 @@ async fn real_postgres_execution_permissions_grading_reset_and_resume() {
         .await
         .unwrap();
     assert!(reopened.solution("01-01").unwrap().is_some());
-    assert!(reopened.progress().unwrap()["01-01"]["passed"]
+    assert!(reopened.progress().await.unwrap()["01-01"]["passed"]
         .as_bool()
         .unwrap());
     reopened.shutdown().await.unwrap();

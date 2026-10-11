@@ -16,7 +16,7 @@ async fn api(
     let result: std::result::Result<Value, String> = async {
         match command.as_str() {
             "course" => Ok(app.course()),
-            "progress" => app.progress(),
+            "progress" => app.progress().await,
             "resources" => {
                 app.resources(input["id"].as_str().ok_or("Missing exercise id")?)
                     .await
