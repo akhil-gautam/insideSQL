@@ -29,7 +29,7 @@
 
 ### Task 1: Bind measurement storage and every consumer to current lab identity
 
-**Files:** Modify progress.rs, runtime.rs, service.rs, preview.rs, native main.rs, existing Rust progress callers, tests/progress.rs, README.md/PRODUCT.md/docs/PROGRESS.md. Create crates/academy-core/src/analysis_identity_tests.rs and docs/reviews/measurement-lab-identity.md.
+**Files:** Modify progress.rs, runtime.rs, service.rs, preview.rs, native main.rs, existing Rust progress callers, tests/progress.rs, web/src/App.tsx and App.test.tsx, README.md/PRODUCT.md/docs/PROGRESS.md. Create crates/academy-core/src/analysis_identity_tests.rs, web/e2e/reset-recovery.spec.ts and docs/reviews/measurement-lab-identity.md.
 
 **Interfaces:** Progress::record_analysis_for_lab(exercise,revision,sql,plan,identity:&str)->Result<()> and has_analysis_for_lab(exercise,revision,sql,identity:&str)->Result<bool>; existing generic record_analysis/has_analysis retained for raw history/storage consumers. Cluster private system_identifier:String; Cluster::connection_identity(&Client)->Result<String>, Cluster::lab_identities(&[String])->Result<HashMap<String,String>>; Academy::progress()->async Result<Value>.
 
@@ -72,8 +72,8 @@ let current=self.cluster.lab_identities(&[db.clone()]).await?;
 let measured=current.get(&db).map(|identity|self.store.has_analysis_for_lab(&e.id,&e.revision,&request.sql,identity)).transpose()?.unwrap_or(false);
 ```
 
-- [ ] Run full core/PostgreSQL, frontend and browser suites plus production/native debug --no-bundle builds. Stop only owned previews. Confirm analysis token isn't returned in progress/resources JSON, missing lazy labs stay absent, and existing cinematic/media/grading flows still pass.
-- [ ] Commit implementation/evidence; obtain one fresh read-only source review of this increment. Regrade findings, fix material issues RED→GREEN once and rerun required checks; commit review/progress notes. Keep full goal active.
+- [x] Run full core/PostgreSQL, frontend and browser suites plus production/native debug --no-bundle builds. Stop only owned previews. Confirm analysis token isn't returned in progress/resources JSON, missing lazy labs stay absent, and existing cinematic/media/grading flows still pass.
+- [x] Commit implementation/evidence; obtain one fresh read-only source review of this increment. Regrade findings, fix material issues RED→GREEN once and rerun required checks; commit review/progress notes. Keep full goal active.
 
 ## Ledger
 
