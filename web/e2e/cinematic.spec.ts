@@ -24,3 +24,16 @@ test('inspect all six cinematic layers, pause, responsive framing and graphics f
  await page.locator('canvas').first().evaluate(canvas=>canvas.dispatchEvent(new Event('webglcontextlost',{cancelable:true})));
  await expect(page.getByText('The 3D view lost its graphics context.',{exact:false})).toBeVisible();await page.getByRole('button',{name:'Analyzer',exact:true}).click();await expect(page.getByText('Names acquire meaning.')).toBeVisible();
 });
+
+test('shared replay uses the player clock and pauses on a stable frame',async({page})=>{
+ await page.goto('/');await page.getByRole('tab',{name:'Explore the journey'}).click();
+ const replay=page.locator('details.replay');await replay.locator('summary').click();
+ await expect(replay.locator('.engine-loading')).toHaveCount(0);
+ await expect(replay.getByRole('button',{name:'Pause motion',exact:true})).toHaveCount(0);
+ await replay.getByRole('button',{name:'Play video',exact:true}).click();
+ await expect(replay.getByRole('button',{name:'Pause video',exact:true})).toBeVisible();
+ await page.waitForTimeout(1000);await replay.getByRole('button',{name:'Pause video',exact:true}).click();
+ await expect(replay.getByRole('button',{name:'Play video',exact:true})).toBeVisible();
+ const canvas=replay.locator('canvas');const first=await canvas.screenshot();await page.waitForTimeout(200);
+ expect((await canvas.screenshot()).equals(first)).toBe(true);
+});

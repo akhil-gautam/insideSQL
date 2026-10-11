@@ -8,4 +8,4 @@ Applied in one batch: projected DOM annotations at12px interactive/20px video; s
 
 Final disposition: **ship**, covering the four scored fixes. All four resolved; no visible regressions introduced. Final reviewer did not inspect video output or broader course surfaces.
 
-Evidence: `.impeccable/review/` captures and `artifacts/media-verification/` deterministic render reports. Manual detector once: no QueryJourney findings. Build, four frontend tests, five browser tests and eleven real PostgreSQL/native core tests pass. Packaged native/WebKit parser/planner scenes and pause controls were verified after the review. Final full-video export remains pending at this checkpoint.
+Evidence: `.impeccable/review/` captures and `artifacts/media-verification/` deterministic render reports. Manual detector once: no QueryJourney findings. Build, four frontend tests, six browser tests and eleven real PostgreSQL/native core tests pass. Packaged native/WebKit parser/planner scenes and pause controls were verified after the review. Final full-video export remains pending at this checkpoint.
