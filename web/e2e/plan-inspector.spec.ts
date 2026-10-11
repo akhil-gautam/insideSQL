@@ -47,3 +47,19 @@ test('plan nodes stay visible through repeated equal-size plans and selection ch
   await expect(page.locator('.react-flow__node[data-id="0"]')).toBeVisible();
  }
 });
+
+test('deletion keys preserve every measured plan node and edge',async({page})=>{
+ await page.goto('/');
+ await page.getByRole('textbox',{name:'SQL query'}).fill('SELECT COUNT(*) FROM orders WHERE id = 99999');
+ await page.getByRole('button',{name:'Analyze',exact:true}).click();
+ await expect(page.getByText('Measured PostgreSQL execution')).toBeVisible();
+ const root=page.locator('.react-flow__node[data-id="0"]');
+ await root.click();
+ for(const key of ['Backspace','Delete']){
+  await root.press(key);
+  await expect(page.locator('.react-flow__node')).toHaveCount(2);
+  await expect(page.locator('.react-flow__edge')).toHaveCount(1);
+  await expect(root).toBeVisible();
+  await expect(page.locator('.react-flow__node[data-id="1"]')).toBeVisible();
+ }
+});
