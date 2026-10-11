@@ -527,6 +527,10 @@ mod mutation_tests;
 mod plan_tests;
 
 #[cfg(test)]
+#[path = "tree_tests.rs"]
+mod tree_tests;
+
+#[cfg(test)]
 mod tests {
     use super::*;
     #[tokio::test]

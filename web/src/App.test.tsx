@@ -14,9 +14,12 @@ Range.prototype.getClientRects=()=>[] as unknown as DOMRectList;
 Range.prototype.getBoundingClientRect=()=>new DOMRect();
 afterEach(()=>{cleanup();vi.clearAllMocks();vi.unstubAllGlobals();});
 
-function start({published=true,passes=true,exerciseCount=6,nativeRoot,commerce=false,writes=false,measurement=false}:{published?:boolean;passes?:boolean;exerciseCount?:number;nativeRoot?:string;commerce?:boolean;writes?:boolean;measurement?:boolean}={}){
+function start({published=true,passes=true,exerciseCount=6,nativeRoot,commerce=false,writes=false,measurement=false,moduleTwo=false}:{published?:boolean;passes?:boolean;exerciseCount?:number;nativeRoot?:string;commerce?:boolean;writes?:boolean;measurement?:boolean;moduleTwo?:boolean}={}){
   const chapters=[{...chapter01,fixture:'orders'},{...chapter02,fixture:writes?'commerce_writes':'orders',published,exercises:chapter02.exercises.slice(0,exerciseCount).map(e=>({...e,require_analyze:measurement}))},...(commerce?[{...chapter03,published:true}]:[])];
-  const progress:Progress=Object.fromEntries(chapters.flatMap(c=>c.exercises.map(e=>[e.id,{unlocked:false,passed:passes&&(c.id==='01'||commerce&&c.id==='02'),sql:e.id==='02-01'?'':null}])));
+  if(moduleTwo){
+    for(let i=3;i<=7;i++)chapters.push({...chapter02,fixture:'orders',id:String(i).padStart(2,'0'),published:i===7||published,title:i===7?'Plan trees and estimates':`Chapter ${i}`,exercises:chapter02.exercises.map(e=>({...e,id:e.id.replace('02-',`${String(i).padStart(2,'0')}-`)}))});
+  }
+  const progress:Progress=Object.fromEntries(chapters.flatMap(c=>c.exercises.map(e=>[e.id,{unlocked:false,passed:passes&&(c.id==='01'||commerce&&c.id==='02'||moduleTwo&&c.id!=='07'),sql:e.id==='02-01'?'':null}])));
   vi.mocked(call).mockImplementation(async(command,input)=>{
     if(command==='course')return {chapter:chapters[0],chapters,fixtures:{...fixtureCatalog,commerce_writes:{...fixtureCatalog.commerce,writable_tables:['orders']}},planned_chapters:84,planned_exercises:504,available_chapters:published?2:1,server_version:'18.3',media_directory:nativeRoot};
     if(command==='progress')return structuredClone(progress);
@@ -129,4 +132,14 @@ test('commerce chapter exposes all of its tables in the schema panel and editor 
   fireEvent.input(editor,{target:{textContent:'SELECT * FROM pay'}});
   editor.focus();fireEvent.keyDown(editor,{key:' ',code:'Space',ctrlKey:true});
   expect(await screen.findByRole('option',{name:'payments'})).toBeTruthy();
+});
+
+test('chapter seven belongs to Plans and remains gated by all earlier published chapters',async()=>{
+ start({moduleTwo:true});
+ fireEvent.click(await screen.findByRole('button',{name:/Chapter 7:/}));
+ expect(screen.getByText('Chapter 7 of Plans')).toBeTruthy();
+ expect(screen.getAllByText('Plans').length).toBeGreaterThanOrEqual(2);
+ cleanup();vi.clearAllMocks();
+ start({moduleTwo:true,published:false});
+ expect((await screen.findByRole('button',{name:/Chapter 7:/})).hasAttribute('disabled')).toBe(true);
 });

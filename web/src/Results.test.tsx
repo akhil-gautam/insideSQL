@@ -1,0 +1,33 @@
+import {afterEach,expect,test,vi} from 'vitest';
+import {cleanup,fireEvent,render,screen,within} from '@testing-library/react';
+import {Results} from './Results';
+import type {PlanNode,QueryResult} from './types';
+vi.mock('@xyflow/react',()=>({ReactFlow:({nodes,onNodeClick}:any)=><div>{nodes.map((n:any)=><button key={n.id} onClick={()=>onNodeClick?.({},n)}>{n.data.label}</button>)}</div>,Background:()=>null,Controls:()=>null,MarkerType:{ArrowClosed:'arrowclosed'},Position:{Top:'top',Bottom:'bottom'}}));
+afterEach(cleanup);
+const node:PlanNode={'Node Type':'Nested Loop','Plan Rows':8,'Startup Cost':0,'Total Cost':12,'Plan Width':24,'Actual Rows':0,'Actual Loops':1,Plans:[{'Node Type':'Index Scan','Relation Name':'orders','Alias':'o','Index Name':'orders_pkey','Parent Relationship':'Outer','Plan Rows':2,'Actual Rows':0,'Actual Loops':0,'Index Cond':'(id = 42)','Shared Hit Blocks':0,Workers:[{'Worker Number':0,'Actual Rows':0}]}]};
+const result=(plan:PlanNode):QueryResult=>({columns:[],column_types:[],rows:[],plan:[{Plan:plan}],error:null,truncated:false,elapsed_ms:3});
+test('operation inspector preserves measured zeros, conditions, relations and structured worker evidence',()=>{
+ render(<Results result={result(node)}/>);
+ const picker=screen.getByRole('combobox',{name:'Inspect a plan operation'});
+ fireEvent.change(picker,{target:{value:'1'}});
+ const details=screen.getByRole('region',{name:'Selected plan operation'});
+ for(const text of ['Index Scan','orders','orders_pkey','Outer','Index Cond','(id = 42)','Shared Hit Blocks','Workers']) expect(within(details).getByText(text)).toBeTruthy();
+ expect(within(details).getAllByText('0').length).toBeGreaterThanOrEqual(3);
+ expect(within(details).getByText(/"Worker Number": 0/)).toBeTruthy();
+ fireEvent.click(screen.getByRole('button',{name:'tree'}));
+ const tree=screen.getByRole('list',{name:'Plan operations'});
+ expect(within(tree).getByText('Total Cost')).toBeTruthy();
+ expect(within(tree).getByText('(id = 42)')).toBeTruthy();
+});
+test('new estimates reset the selected operation and do not manufacture measurements',()=>{
+ const view=render(<Results result={result(node)}/>);
+ fireEvent.change(screen.getByRole('combobox',{name:'Inspect a plan operation'}),{target:{value:'1'}});
+ view.rerender(<Results result={result({'Node Type':'Seq Scan','Relation Name':'customers','Plan Rows':52,'Total Cost':1.52})}/>);
+ expect(screen.getByText('PostgreSQL planner estimates')).toBeTruthy();
+ const details=screen.getByRole('region',{name:'Selected plan operation'});
+ expect(within(details).getByText('customers')).toBeTruthy();
+ expect(within(details).queryByText('orders')).toBeNull();
+ expect(within(details).queryByText('Actual Rows')).toBeNull();
+ fireEvent.click(screen.getByRole('button',{name:'json'}));
+ expect(screen.getByText(/"Plan Rows": 52/)).toBeTruthy();
+});

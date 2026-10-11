@@ -1,0 +1,103 @@
+{
+  "id": "07",
+  "published": false,
+  "fixture": "commerce",
+  "title": "Plan trees and estimates",
+  "subtitle": "Identify operation occurrences, account for their populations, and connect estimates to correct query contracts.",
+  "objectives": [
+    "Identify child and parent operations without treating a tree as a clause trace",
+    "Inspect relation identities, conditions, estimates and measured fields",
+    "Preserve result grain through enrichment, existence and aggregation",
+    "Read zero-loop and nested operation evidence without manufacturing totals",
+    "Accept equivalent SQL while explaining its observed plan",
+    "Complete six measured reports across changing commerce populations"
+  ],
+  "references": [
+    "https://www.postgresql.org/docs/18/using-explain.html",
+    "https://www.postgresql.org/docs/18/sql-explain.html"
+  ],
+  "exercises": [
+    {
+      "id": "07-01",
+      "title": "Summarize status populations",
+      "prompt": "Return status, order count, known-total count and sum of known totals for every status present in orders. Use numeric zero for an empty or all-null sum. Sort by status ascending. Explain then Analyze the current SQL; inspect the aggregate output estimate and its child operations.",
+      "starter": "SELECT status\nFROM orders\n-- summarize each status population\nORDER BY status;",
+      "ordered": true,
+      "require_analyze": true,
+      "revision": "07-01-v1-commerce-v1-measurement-v1",
+      "solution_sql": "SELECT status,COUNT(*),COUNT(total),COALESCE(SUM(total),0) FROM orders GROUP BY status ORDER BY status",
+      "explanation": "Count events and known amounts separately. Each status contributes one result group, and order amounts remain exact decimals. The scan and aggregate populations have different grains; use the inspector to keep their estimates attached to the correct operations."
+    },
+    {
+      "id": "07-02",
+      "title": "Account for a cold customer",
+      "prompt": "Return id, status and total for every order belonging to customer 202. Include all statuses and unknown amounts. Sort by order id ascending. Analyze the current SQL and inspect the relation, restriction and estimated output population, without requiring an index scan.",
+      "starter": "SELECT id, status, total\nFROM orders\n-- retain the cold customer\nORDER BY id;",
+      "ordered": true,
+      "require_analyze": true,
+      "revision": "07-02-v1-commerce-v1-measurement-v1",
+      "solution_sql": "SELECT id,status,total FROM orders WHERE customer_id=202 ORDER BY id",
+      "explanation": "Restrict only customer identity. The generated cold-customer population is far smaller than customer 201, but a small output does not guarantee little input work. Compare the chosen operations rather than attributing physical behavior to the SQL clause alone."
+    },
+    {
+      "id": "07-03",
+      "title": "Filter paid activity by item existence",
+      "prompt": "Return paid order id, customer name and order total for each paid order with at least one item whose quantity is at least three. Return each qualifying order once, preserving unknown totals and distinct orders with equal amounts. Sort by order id ascending. Analyze and inspect the join/existence conditions and their estimated populations.",
+      "starter": "SELECT o.id, c.name, o.total\nFROM orders o\nJOIN customers c ON c.id = o.customer_id\n-- keep qualifying paid orders once\nORDER BY o.id;",
+      "ordered": true,
+      "require_analyze": true,
+      "revision": "07-03-v1-commerce-v1-measurement-v1",
+      "solution_sql": "SELECT o.id,c.name,o.total FROM orders o JOIN customers c ON c.id=o.customer_id WHERE o.status='paid' AND EXISTS(SELECT 1 FROM order_items i WHERE i.order_id=o.id AND i.quantity>=3) ORDER BY o.id",
+      "explanation": "Existence tests the item population without multiplying the order output. Joining the unique customer key adds its name. Each distinct order remains an event even when names or amounts repeat. A different equivalent query can pass after its own Analyze."
+    },
+    {
+      "id": "07-04",
+      "title": "Preserve customers without paid activity",
+      "prompt": "Return id and name for every customer with no paid order. Include customers with unpaid orders and customers with no orders at all. Return one row per customer identity, sorted by id ascending. Analyze and inspect where the paid restriction belongs in the absence test.",
+      "starter": "SELECT c.id, c.name\nFROM customers c\n-- exclude customers with any paid order\nORDER BY c.id;",
+      "ordered": true,
+      "require_analyze": true,
+      "revision": "07-04-v1-commerce-v1-measurement-v1",
+      "solution_sql": "SELECT c.id,c.name FROM customers c WHERE NOT EXISTS(SELECT 1 FROM orders o WHERE o.customer_id=c.id AND o.status='paid') ORDER BY c.id",
+      "explanation": "Absence concerns paid matches, not all orders. Unpaid activity must not exclude a customer. Customer identity keeps repeated names separate. The result contract is compatible with different physical anti-join strategies; inspect the observed plan instead of requiring one."
+    },
+    {
+      "id": "07-05",
+      "title": "Filter groups after counting paid orders",
+      "prompt": "Return customer_id, paid order count and sum of known paid totals for customers with at least three paid orders. Count paid orders even when their amount is unknown. Use numeric zero for an all-null sum. Sort by paid order count descending, then customer_id ascending. Analyze and inspect grouping keys and any group filter.",
+      "starter": "SELECT customer_id\nFROM orders\n-- count the paid population before qualifying groups\nORDER BY customer_id;",
+      "ordered": true,
+      "require_analyze": true,
+      "revision": "07-05-v1-commerce-v1-measurement-v1",
+      "solution_sql": "SELECT customer_id,COUNT(*),COALESCE(SUM(total),0) FROM orders WHERE status='paid' GROUP BY customer_id HAVING COUNT(*)>=3 ORDER BY COUNT(*) DESC,customer_id",
+      "explanation": "The paid condition defines input events; HAVING applies the threshold to each resulting customer group. Unknown amounts do not remove orders from that count. The explicit identity tie-break makes the ordered result reproducible across fixture variants."
+    },
+    {
+      "id": "07-06",
+      "title": "Read a two-branch result contract",
+      "prompt": "Return id and status for paid orders with known total at least 200, together with pending orders whose total is unknown. Preserve every distinct order and sort the combined rows by id ascending. Analyze and inspect branch populations if the selected plan exposes them. No particular Append or scan node is required.",
+      "starter": "SELECT id, status\nFROM orders\n-- combine the two disjoint populations\nORDER BY id;",
+      "ordered": true,
+      "require_analyze": true,
+      "revision": "07-06-v1-commerce-v1-measurement-v1",
+      "solution_sql": "SELECT id,status FROM orders WHERE status='paid' AND total>=200 UNION ALL SELECT id,status FROM orders WHERE status='pending' AND total IS NULL ORDER BY id",
+      "explanation": "The paid-known and pending-unknown populations are disjoint. UNION ALL preserves their event multiplicity; an equivalent disjunction can also satisfy the contract. Explain the observed tree, including any final order operation, without treating SQL spelling as a fixed physical plan."
+    }
+  ],
+  "transcript": [
+    "We now enter the Plans module. Keep the six result contracts from the SQL journey nearby: they describe what a query must return, while the plan describes an implementation chosen for that query and data. This chapter gives you six new reports over the same commerce domain, so unfamiliar business terms do not hide the reasoning. Your task is to connect each operation to the population it consumes or emits. Start with a correct query, inspect its estimates, and then measure that current SQL. You can pass the result check using equivalent SQL; the useful learning comes from explaining the particular tree you actually observed.",
+    "Use the graph as a map and the operation selector as your inspection tool. Each entry identifies one occurrence in the tree. Two scans with the same label are still separate operations, and the number in the selector helps you tell them apart. Click an operation or select it with the keyboard, then read its properties below the graph. Relation names, aliases and conditions give the labels concrete meaning. The readable tree offers the same properties with collapsible branches. Raw JSON remains available when you want to compare the complete record. These views expose reported engine evidence; their connecting arrows illustrate child-to-parent structure rather than a recorded animation of execution events.",
+    "The first report groups orders by status. You already know the distinction between the number of order events and the number of known totals. Preserve that distinction in your SQL. Before Analyze, select the root and read Plan Rows beside its label. Then select the operation that reads orders and compare its own population. The status summary has one row per status; the underlying activity consists of individual orders. Neither population is a substitute for the other. Use the typed result table to verify all four required columns, especially the sum convention. A convincing tree cannot repair a report that silently loses orders with unknown amounts.",
+    "Estimate fields describe a planner prediction. Plan Rows names output cardinality, and Plan Width describes predicted output-row width. Startup Cost and Total Cost use the planner's relative cost model; they are not measured milliseconds. A parent's estimate incorporates its children, so do not add the whole tree as independent work. Keep each number beside its operation when writing your notes. Ask what that operation promises to deliver, and whether the surrounding report needs that population. The exercise does not demand one node name. A different chosen aggregation or ordering path can still implement the same complete result contract.",
+    "Customer two hundred and two gives the second report a cold-key population. Return every order for that identity, with its status and amount, and preserve unknown totals. Compare this result with the hot customer examined earlier. The difference belongs to the synthetic workload, not to an assumption that all customer identifiers behave alike. In the inspector, look for the relation and restriction responsible for this report. A condition may be attached at different operations depending on the selected path. Do not decide that an index must be used merely because the output is small; describe the evidence available for this run and leave controlled access-path experiments to later chapters.",
+    "The third report combines two relationships with different jobs. The unique customer match contributes the name for an order. Item existence decides whether that paid order qualifies. Several qualifying items must not create several copies of the order output. Use this contract to distinguish matching for enrichment from matching for existence. Inspect the conditions and populations in the observed plan, then return to the result ids. Equal amounts and repeated customer names do not mean duplicate orders. If you choose another SQL formulation, it must preserve the same events across the assessment variants and have its own successful Analyze. A familiar-looking join label does not establish correct multiplicity.",
+    "The fourth report concerns customers without paid activity. This is a narrower absence rule than having no orders at all. Omar's unpaid activity must not exclude him, and an inactive customer still qualifies. Ask exactly which population the absence test searches, and inspect where the paid restriction appears. Keep the customer key in the result so identities with equal names remain separate. Use the readable tree to walk from the customer source through the selected matching logic to the final output. You are accounting for a predicate and result grain; you are not proving that every absence expression uses the same physical anti-join algorithm.",
+    "The fifth query qualifies customer groups after counting paid orders. A paid order with an unknown total still contributes to the count threshold. Apply the paid condition before grouping and the at-least-three rule to the resulting count. Inspect any displayed grouping keys and group filter, then compare the population before and after that transformation. The final count-descending order needs a customer-id tie-break. This is another opportunity to connect an order requirement to the selected operations without demanding a standalone Sort. Your result remains a business relation with an explicit ordering contract, even when the planner implements the steps through a different arrangement than you expected.",
+    "Two disjoint populations form the last report: paid orders with known amounts of at least two hundred, and pending orders with unknown amounts. State that contract before deciding how to combine them. UNION ALL is one clear formulation; a correctly parenthesized disjunction can also be accepted. The plan may expose branch operations or a different path. Inspect whichever structure your query produced. Both populations contain order events, so keep distinct ids and the final id ordering. Do not rewrite a correct query merely to force an Append label for the lesson. Explain the relationship between your SQL, the observed structure and the combined output.",
+    "After Analyze, return to the same operation selections and inspect the actual fields. Read loop context alongside actual rows and node timing. Zero loops is useful information: that operation was not executed in this run. A predicted row count can remain visible beside measured zero, and neither value should be hidden or relabeled as the other. Parent and child observations are related rather than independent totals. The inspector preserves the reported numbers, including zeros, instead of inventing a trace from them. When you record a discrepancy, identify the operation and its context so another reader can tell what you compared.",
+    "A plan can contain details beyond the small set of headline counters. Look for relation aliases, join types, grouping or ordering keys, filters, index conditions and buffer counters where PostgreSQL reports them. Structured properties such as worker records remain visible as structured text. Child Plans are represented as separate inspectable operations rather than flattened into a field list. This matters when two appearances of the same relation have different conditions. Prefer a precise note about an identified occurrence to a statement that the entire query used an index. We will investigate parallel execution, repeated loops and storage more deeply after the fundamental tree-accounting habits are reliable.",
+    "A limit can stop consumption before a child delivers everything its estimate described. Keep that possibility in mind when interpreting a low measured population beneath a result limit. An estimate also does not promise a stable number across changed data, refreshed statistics or settings. Use these small fixtures to practice naming the observation boundary, not to claim production speed. Your controlled-comparison chapter will require a stronger experiment. For now, save the query and explain what each selected operation means for this specific report. Avoid arithmetic that presents a rounded per-loop observation as a precise event inventory or makes all displayed buffer counters independent pages.",
+    "The measurement requirement remains tied to your current query. Explain supplies estimates but does not supply that evidence. A syntax error or cancellation can open the answer after a real attempt, yet neither creates a successful measured plan. Editing SQL means the new query needs its own Analyze before Check. Reset removes the measurement evidence and restores the lab while preserving your script and earned pass. This behavior makes the workflow concrete without pretending a button press proves understanding. Read the reference explanation only after trying, compare it with your reasoning, and use the inspector to investigate where your own formulation differs.",
+    "Finish with six short explanations: status groups, a cold customer, paid orders with qualifying items, customers without paid activity, qualified paid-customer groups and a combined two-population report. Each explanation should identify its result grain and point to relevant occurrences in the measured tree. All six queries must pass three fresh commerce variants, so hardcoded ids or sample totals cannot substitute for the report. The next chapters deepen scans, join strategies, ordering and aggregation before controlled comparisons. Keep separate records of what the planner predicted, what this execution reported and what the visualization illustrates. That separation will support much harder optimization investigations later in the course."
+  ]
+}

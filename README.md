@@ -2,7 +2,7 @@
 
 A native Tauri/Rust learning workbench with real, disposable PostgreSQL labs, Theatre.js mechanism scenes and Remotion chapter videos.
 
-The complete approved scope is [docs/PLAN.md](docs/PLAN.md). Verified delivery status is [docs/PROGRESS.md](docs/PROGRESS.md). The full course is **not complete**: chapter 1 is delivered, chapters 2–6 have unpublished authored drafts and tested SQL exercises, and later chapters remain to author.
+The complete approved scope is [docs/PLAN.md](docs/PLAN.md). Verified delivery status is [docs/PROGRESS.md](docs/PROGRESS.md). The full course is **not complete**: chapter 1 is delivered, chapters 2–7 have unpublished authored drafts and tested SQL exercises, and later chapters remain to author.
 
 ## Local macOS development
 
