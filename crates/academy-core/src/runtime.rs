@@ -10,6 +10,8 @@ use std::{
     time::Duration,
 };
 use tokio_postgres::{Client, Config, NoTls};
+#[cfg(test)]
+mod ownership_tests;
 mod reset;
 pub struct Cluster {
     pub root: PathBuf,
@@ -17,7 +19,7 @@ pub struct Cluster {
     password: String,
     system_identifier: String,
     bin: PathBuf,
-    child: Mutex<Option<Child>>,
+    child: Mutex<Option<(Child, File)>>,
     pub(crate) minimum_free_disk_bytes: u64,
 }
 impl Cluster {
@@ -38,6 +40,26 @@ impl Cluster {
         }
         let root = home.canonicalize().map_err(|e| e.to_string())?;
         Self::check_disk_space(&root, minimum_free_disk_bytes)?;
+        let mut options = File::options();
+        options.read(true).write(true).create(true).truncate(false);
+        #[cfg(unix)]
+        {
+            use std::os::unix::fs::OpenOptionsExt;
+            options.mode(0o600);
+        }
+        let ownership = options
+            .open(root.join(".academy.lock"))
+            .map_err(|e| format!("Cannot lock this local database workspace: {e}"))?;
+        ownership.try_lock().map_err(|e|match e {
+            std::fs::TryLockError::WouldBlock => "This local database workspace is already open in another app instance. Close that instance before reopening.".into(),
+            std::fs::TryLockError::Error(e) => format!("Cannot lock this local database workspace: {e}"),
+        })?;
+        // Older or crashed apps may leave a live server without our application lock.
+        match fs::symlink_metadata(root.join("data/postmaster.pid")) {
+            Ok(_) => return Err("A PostgreSQL server marker (data/postmaster.pid) already exists. Its server and data were left untouched; finish safe recovery before reopening.".into()),
+            Err(e) if e.kind()==std::io::ErrorKind::NotFound => {},
+            Err(e) => return Err(format!("Cannot inspect the existing PostgreSQL server marker: {e}")),
+        }
         let bin = postgres.join("bin");
         let version = Command::new(bin.join("postgres"))
             .arg("--version")
@@ -122,7 +144,7 @@ impl Cluster {
             password,
             system_identifier: String::new(),
             bin,
-            child: Mutex::new(Some(child)),
+            child: Mutex::new(Some((child, ownership))),
             minimum_free_disk_bytes,
         };
         for _ in 0..200 {
@@ -315,20 +337,39 @@ impl Cluster {
     }
     pub fn stop(&self) -> Result<()> {
         let mut lock = self.child.lock().map_err(|e| e.to_string())?;
-        if let Some(mut child) = lock.take() {
-            let output = Command::new(self.bin.join("pg_ctl"))
-                .arg("stop")
-                .arg("-D")
-                .arg(self.root.join("data"))
-                .args(["-m", "fast", "-t", "5"])
-                .output()
-                .map_err(|e| e.to_string())?;
-            if !output.status.success() {
+        if let Some((mut child, _ownership)) = lock.take() {
+            if child.try_wait().map_err(|e| e.to_string())?.is_some() {
+                return Ok(());
+            }
+            let stopped: Result<()> = (|| {
+                // Signal the retained child, never a PID read from mutable directory metadata.
+                let output = Command::new(self.bin.join("pg_ctl"))
+                    .args(["kill", "INT", &child.id().to_string()])
+                    .output()
+                    .map_err(|e| e.to_string())?;
+                if !output.status.success()
+                    && child.try_wait().map_err(|e| e.to_string())?.is_none()
+                {
+                    return Err(String::from_utf8_lossy(&output.stderr).into());
+                }
+                let deadline = std::time::Instant::now() + Duration::from_secs(5);
+                loop {
+                    if child.try_wait().map_err(|e| e.to_string())?.is_some() {
+                        return Ok(());
+                    }
+                    if std::time::Instant::now() >= deadline {
+                        return Err(
+                            "Owned PostgreSQL did not finish shutdown within five seconds".into(),
+                        );
+                    }
+                    std::thread::sleep(Duration::from_millis(10));
+                }
+            })();
+            if stopped.is_err() {
                 let _ = child.kill();
                 let _ = child.wait();
-                return Err(String::from_utf8_lossy(&output.stderr).into());
             }
-            child.wait().map_err(|e| e.to_string())?;
+            return stopped;
         }
         Ok(())
     }
