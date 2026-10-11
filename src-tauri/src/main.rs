@@ -11,7 +11,7 @@ fn course(app: State<AppState>, handle: tauri::AppHandle) -> Result<Value, Strin
             .path()
             .resource_dir()
             .map_err(|e| e.to_string())?
-            .join("media/01")
+            .join("media")
             .to_string_lossy()
             .into_owned(),
     );
