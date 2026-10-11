@@ -31,3 +31,19 @@ test('real PostgreSQL operations are inspectable by graph, keyboard selector, tr
  await page.evaluate(()=>window.scrollTo(0,0));
  await page.screenshot({path:'artifacts/plan-inspector.png',fullPage:true});
 });
+
+test('plan nodes stay visible through repeated equal-size plans and selection changes',async({page})=>{
+ await page.goto('/');
+ for(let i=0;i<8;i++){
+  await page.getByRole('textbox',{name:'SQL query'}).fill(`SELECT COUNT(*) FROM orders WHERE id = ${99999+i}`);
+  await page.getByRole('button',{name:'Analyze',exact:true}).click();
+  await expect(page.getByText('Measured PostgreSQL execution')).toBeVisible();
+  const picker=page.getByRole('combobox',{name:'Inspect a plan operation'});
+  await picker.selectOption('1');
+  await expect(page.locator('.react-flow__node[data-id="0"]')).toBeVisible();
+  await picker.selectOption('0');
+  await expect(page.locator('.react-flow__node[data-id="1"]')).toBeVisible();
+  await page.getByRole('button',{name:'orders schema',exact:true}).click();
+  await expect(page.locator('.react-flow__node[data-id="0"]')).toBeVisible();
+ }
+});

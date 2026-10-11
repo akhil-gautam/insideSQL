@@ -2,7 +2,7 @@ import {afterEach,expect,test,vi} from 'vitest';
 import {cleanup,fireEvent,render,screen,within} from '@testing-library/react';
 import {Results} from './Results';
 import type {PlanNode,QueryResult} from './types';
-vi.mock('@xyflow/react',()=>({ReactFlow:({nodes,onNodeClick}:any)=><div>{nodes.map((n:any)=><button key={n.id} onClick={()=>onNodeClick?.({},n)}>{n.data.label}</button>)}</div>,Background:()=>null,Controls:()=>null,MarkerType:{ArrowClosed:'arrowclosed'},Position:{Top:'top',Bottom:'bottom'}}));
+vi.mock('@xyflow/react',async()=>({...await vi.importActual<typeof import('@xyflow/react')>('@xyflow/react'),ReactFlow:({nodes,onNodeClick}:any)=><div>{nodes.map((n:any)=><button key={n.id} onClick={()=>onNodeClick?.({},n)}>{n.data.label}</button>)}</div>,Background:()=>null,Controls:()=>null}));
 afterEach(cleanup);
 const node:PlanNode={'Node Type':'Nested Loop','Plan Rows':8,'Startup Cost':0,'Total Cost':12,'Plan Width':24,'Actual Rows':0,'Actual Loops':1,Plans:[{'Node Type':'Index Scan','Relation Name':'orders','Alias':'o','Index Name':'orders_pkey','Parent Relationship':'Outer','Plan Rows':2,'Actual Rows':0,'Actual Loops':0,'Index Cond':'(id = 42)','Shared Hit Blocks':0,Workers:[{'Worker Number':0,'Actual Rows':0}]}]};
 const result=(plan:PlanNode):QueryResult=>({columns:[],column_types:[],rows:[],plan:[{Plan:plan}],error:null,truncated:false,elapsed_ms:3});

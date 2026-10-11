@@ -1,0 +1,109 @@
+{
+  "id": "10",
+  "published": false,
+  "fixture": "scan_orders",
+  "title": "Sort and aggregate: ordering, state and spills",
+  "subtitle": "Reduce 100,000 events into deterministic ranked reports, then inspect the actual ordering and aggregation work.",
+  "objectives": [
+    "Specify deterministic ordering, null placement and top-N boundaries",
+    "Distinguish input populations from the rows emitted by sort, aggregate and limit operations",
+    "Inspect aggregation strategy and reported memory or temporary-file evidence",
+    "Preserve event counts and unknown-value average semantics",
+    "Write conditional measures and qualify complete groups before limiting",
+    "Preserve grouping-set identities and physical value multiplicity"
+  ],
+  "references": [
+    "https://www.postgresql.org/docs/18/using-explain.html",
+    "https://www.postgresql.org/docs/18/queries-order.html",
+    "https://www.postgresql.org/docs/18/queries-limit.html",
+    "https://www.postgresql.org/docs/18/functions-aggregate.html",
+    "https://www.postgresql.org/docs/18/sql-expressions.html",
+    "https://www.postgresql.org/docs/18/queries-table-expressions.html",
+    "https://www.postgresql.org/docs/18/xaggr.html",
+    "https://www.postgresql.org/docs/18/runtime-config-resource.html"
+  ],
+  "exercises": [
+    {
+      "id": "10-01",
+      "title": "Rank paid orders deterministically",
+      "prompt": "Return order id and nullable total for the first 25 paid orders ordered by total descending, unknown totals last, and order id ascending within equal totals. Apply the limit after this complete ordering. Analyze and inspect the input population, ordering and limit operations.",
+      "starter": "SELECT id, total\nFROM orders\n-- qualify paid events and specify the complete ranked order\nLIMIT 25;",
+      "ordered": true,
+      "require_analyze": true,
+      "revision": "10-01-v1-scan-orders-v1-measurement-v1",
+      "solution_sql": "SELECT id,total FROM orders WHERE status='paid' ORDER BY total DESC NULLS LAST,id LIMIT 25",
+      "explanation": "Descending amount order needs explicit unknown-last placement. The unique order id resolves repeated known amounts and makes the selected boundary deterministic. LIMIT bounds output, not necessarily the number of rows inspected below the sort. Equivalent access paths are accepted."
+    },
+    {
+      "id": "10-02",
+      "title": "Keep known-value averages separate from events",
+      "prompt": "For every UTC date with orders of customer 777, return UTC date, event count, count of known totals, sum of known totals with numeric zero for an all-null sum, and average of known totals rounded to two decimal places. The average must remain NULL when no known total exists. Unknown totals count as events but are excluded from the average denominator. Sort UTC date ascending. Analyze the grouping and aggregate output.",
+      "starter": "SELECT (ordered_at AT TIME ZONE 'UTC')::date\nFROM orders\nWHERE customer_id = 777\n-- compute separate event and known-value measures\nORDER BY 1;",
+      "ordered": true,
+      "require_analyze": true,
+      "revision": "10-02-v1-scan-orders-v1-measurement-v1",
+      "solution_sql": "SELECT (ordered_at AT TIME ZONE 'UTC')::date,COUNT(*),COUNT(total),COALESCE(SUM(total),0),ROUND(AVG(total),2) FROM orders WHERE customer_id=777 GROUP BY 1 ORDER BY 1",
+      "explanation": "The sum's requested empty-value convention does not alter the average's inputs. AVG ignores unknown amounts; converting them to zero would change both its population and its denominator. Customer 777's all-null January 11 group has real events, zero known sum and an unknown average. Define the date explicitly in UTC."
+    },
+    {
+      "id": "10-03",
+      "title": "Compute sibling conditional measures",
+      "prompt": "For each customer id appearing in orders, return customer id, total event count across all statuses, paid-event count, count of known paid totals, sum of known paid totals with numeric zero when absent, and pending-event count. Include unknown paid amounts in the paid-event count. Sort customer id ascending. Analyze the strategy and compare aggregate input/output populations.",
+      "starter": "SELECT customer_id, COUNT(*)\nFROM orders\n-- keep the full input while defining conditional measures\nGROUP BY customer_id\nORDER BY customer_id;",
+      "ordered": true,
+      "require_analyze": true,
+      "revision": "10-03-v1-scan-orders-v1-measurement-v1",
+      "solution_sql": "SELECT customer_id,COUNT(*),COUNT(*) FILTER(WHERE status='paid'),COUNT(total) FILTER(WHERE status='paid'),COALESCE(SUM(total) FILTER(WHERE status='paid'),0),COUNT(*) FILTER(WHERE status='pending') FROM orders GROUP BY customer_id ORDER BY customer_id",
+      "explanation": "Each conditional measure chooses its own inputs while the complete customer event population remains available. Filtering the whole relation to paid events loses pending events and changes the all-status count. Count events and known amounts separately; aggregation strategy does not change those contracts."
+    },
+    {
+      "id": "10-04",
+      "title": "Qualify complete paid groups before ranking",
+      "prompt": "Among paid orders, form customer groups with at least six paid events and a sum of known paid totals of at least 1500. Return customer id, paid-event count, known-paid-total count and known-paid-total sum. Unknown totals still count as paid events. Order sum descending and customer id ascending, then return the first 20 groups. Analyze the qualification, ranking and limit.",
+      "starter": "SELECT customer_id\nFROM orders\n-- form and qualify complete paid groups before ranking them\nLIMIT 20;",
+      "ordered": true,
+      "require_analyze": true,
+      "revision": "10-04-v1-scan-orders-v1-measurement-v1",
+      "solution_sql": "SELECT customer_id,COUNT(*),COUNT(total),COALESCE(SUM(total),0) FROM orders WHERE status='paid' GROUP BY customer_id HAVING COUNT(*)>=6 AND COALESCE(SUM(total),0)>=1500 ORDER BY 4 DESC,customer_id LIMIT 20",
+      "explanation": "The paid restriction defines every group's source population. HAVING applies the event and money requirements to complete groups; the final order and limit choose qualifying groups. Money from pending, cancelled or refunded events must not enter the qualification or reported sum."
+    },
+    {
+      "id": "10-05",
+      "title": "Identify detail, subtotals and grand total",
+      "prompt": "Use only orders of customers 1 and 777. Return customer/status detail groups, one subtotal per customer, and one grand total. Columns: GROUPING(customer_id,status) mask, nullable customer id, nullable status, event count, known-total count and known-total sum with numeric zero when absent. Detail mask is 0, customer subtotal mask 1, grand-total mask 3. Omitted grouping keys remain NULL. Sort mask ascending, then customer id ascending NULLS LAST, then status ascending NULLS LAST. Analyze the grouping-set implementation.",
+      "starter": "SELECT customer_id, status\nFROM orders\nWHERE customer_id IN (1, 777)\n-- retain each required grouping level and identify omitted keys",
+      "ordered": true,
+      "require_analyze": true,
+      "revision": "10-05-v1-scan-orders-v1-measurement-v1",
+      "solution_sql": "SELECT GROUPING(customer_id,status),customer_id,status,COUNT(*),COUNT(total),COALESCE(SUM(total),0) FROM orders WHERE customer_id IN(1,777) GROUP BY GROUPING SETS((customer_id,status),(customer_id),()) ORDER BY 1,2 NULLS LAST,3 NULLS LAST",
+      "explanation": "Each requested grouping level has its own grain. The mask identifies which keys were omitted; a subtotal's null status is an output marker, not an event whose stored status is unknown. Keep subtotal/grand-total keys null rather than replacing them with fabricated identities or labels. Every event contributes once to each applicable level."
+    },
+    {
+      "id": "10-06",
+      "title": "Separate distinct values from repeated events",
+      "prompt": "For each order status, return status, event count, known-total count, number of distinct known total values, and sum of all known event totals with numeric zero when absent. Equal amounts on different orders remain separate contributions to the sum. Sort status ascending. Analyze the distinct-value aggregate and any ordering or temporary work it requires.",
+      "starter": "SELECT status\nFROM orders\n-- count value diversity while retaining every physical event's amount\nGROUP BY status\nORDER BY status;",
+      "ordered": true,
+      "require_analyze": true,
+      "revision": "10-06-v1-scan-orders-v1-measurement-v1",
+      "solution_sql": "SELECT status,COUNT(*),COUNT(total),COUNT(DISTINCT total),COALESCE(SUM(total),0) FROM orders GROUP BY status ORDER BY status",
+      "explanation": "Distinct known values measure amount diversity and ignore unknowns. Event totals measure physical occurrences. A distinct-value sum would remove legitimate repeated amounts. Distinct aggregates can impose work beyond a small final status report; inspect reported operations instead of inventing a one-pass cost from the output count."
+    }
+  ],
+  "transcript": [
+    "Sort and aggregate operations turn the populations from earlier chapters into ranked and summarized reports. Our read-only fixture still contains one hundred thousand synthetic orders, exact decimal amounts, repeated values, unknown totals and fixed UTC events. Customer one is hot, while customer seven hundred seventy-seven supplies a smaller population and an authored all-null day. We will write six bounded reports over those substantial inputs. A result with twenty-five rows or four status groups can still require inspecting many events. Start by naming the input population, the output grain and the required order. Those three decisions give you something concrete to verify when an operation reduces or rearranges rows inside the measured plan.",
+    "The first exercise ranks paid orders by amount, with unknown totals last and event identity resolving equal amounts. The second reports cold-customer days while separating event counts from known-value averages. The third computes sibling conditional measures from complete customer populations. The fourth qualifies paid groups before choosing the highest twenty. The fifth includes customer/status detail, customer subtotals and a grand total with explicit level identities. The final report counts amount diversity while still summing every physical event. These are result contracts, not invitations to pick whichever aggregation happens to produce a convenient number. Keep the requested columns and their unknown-value rules visible while you write and inspect each query.",
+    "For the ranked paid report, descending amount order needs an explicit unknown-last rule. Do not assume the default placement agrees with the task. Amounts repeat on different orders, so the order id supplies a unique tie breaker before the limit. Without that last key, selecting a boundary within equal amounts does not establish which events belong in the report. A different access strategy can then return a different valid ordering of those ties. Our assessment asks for a deterministic sequence. An amount predicate that discards unknown events is a different population definition even when a particular small limit happens to return only known amounts. Specify the ranking directly rather than inferring it from the first few visible rows.",
+    "A sort can obtain the required order after reading its input, while an appropriate access path can sometimes supply useful order already. An incremental sort can exploit an ordered prefix when the chosen path provides one. Look at the actual keys and both the sort and its child; the number emitted by a sort under a limit is not necessarily the number supplied to it. A bounded sort may retain a smaller candidate set while still visiting a broad input. Inspect the reported method instead of promising that every top-N report stops after N table events. Likewise, an index on one key does not automatically satisfy every multi-key order or every requested null placement.",
+    "For an observed sort, inspect the reported method, space type and space used. A disk-backed sort can also contribute temporary reads and writes to the measured execution. Those fields are evidence from the current run. They are not estimates copied into actual columns or animations of imaginary file activity. Our validation holds one complete customer report fixed and compares controlled sorted aggregation with small and larger session memory settings. It checks the same report while requiring real disk and memory sort evidence in those owned experiments. Learner submissions keep the normal runtime defaults. You are not graded on forcing a spill, avoiding one or obtaining a specific sort label.",
+    "Aggregation maintains state for the inputs belonging to a group, then produces that group's result. A count state, a sum state and the information needed to calculate an average have different meanings. Aggregate input types, internal state types and final output types need not be identical. The ordinary known-value average is based on contributing known values, not every event in the group. A plain aggregate, sorted grouping and hashed grouping also organize work differently. In the operation inspector, inspect the reported strategy and group keys rather than translating every Aggregate node into the same mental picture. Detailed executor state and memory-context source tours come later; these reports establish the observable contracts that those implementations must preserve.",
+    "The cold daily report exposes a useful distinction between a zero sum convention and an unknown average. Customer seven hundred seventy-seven has three real events on January eleven with unknown totals. That day still exists, and its event count is not zero. The task requests numeric zero for its known sum, but it requests an unknown average because no known amount supplies an average input. Converting each unknown amount to zero before averaging fabricates observations. Dividing the known sum by every event count makes a different mistake when known and unknown amounts share a day. Keep the two counts separate, round the known average at the requested final precision and derive each date explicitly in UTC.",
+    "The conditional customer report retains events from all statuses. Each aggregate then chooses its own qualifying inputs: paid events, known paid amounts, paid money or pending events. The all-status count still needs the complete population. Moving the paid restriction into WHERE would change that population before any sibling measure is computed. The resulting paid count might look correct while the pending and all-event measures are wrong. Inspect how many rows reach the aggregate and how many customer groups leave it. A hash structure over many groups and an ordered grouping pass have different work profiles, but neither implementation may silently change the relationships among those measures. Correct conditional aggregation comes before strategy comparison.",
+    "The ranked group report first selects paid events, then forms complete customer groups. A group qualifies through at least six paid events and at least fifteen hundred in known paid money. Unknown amounts still count as events. Only after qualification do we order by the group's sum and customer identity and choose the first twenty groups. Limiting base events early would produce incomplete customer histories. Summing all statuses while applying only a paid-count condition would import money that the contract excludes. HAVING belongs to group qualification; the final limit belongs to selecting qualifying group rows. Follow those populations through the measured operations rather than treating every visible filter or limit as interchangeable.",
+    "Grouping sets make several output grains explicit in one report. We select only the hot and cold customers, then request customer/status details, one subtotal for each customer and a grand total. The grouping mask identifies each level: zero for both keys present, one for status omitted and three for both keys omitted. Omitted keys stay null in the required output. Those null markers are different from an unknown stored amount, and the fixture's stored customer and status keys are not nullable. Do not fabricate customer zero or a status named ALL to represent totals. An event contributes once to each applicable level, so adding all displayed levels together would count the selected events repeatedly.",
+    "The status diversity report separates the number of physical events, the number with known amounts and the number of distinct known amount values. Two events can share exactly the same amount while remaining two contributions to known money. A distinct-value count answers the diversity question; a distinct-value sum does not answer the event-money question. Inspect the aggregate and any supporting ordering, including work that can occur within aggregate processing. A small final status report does not eliminate the need to inspect its inputs. The fixtures contain repeated known values in every status across all three distributions, so an incorrect distinct-value money sum cannot pass simply because the visible data happens to be unique.",
+    "The controlled validation also compares hashed and sorted aggregation for the same conditional customer report. It disables competing ordered access and parallel paths only in a test-owned session, selects a bounded memory setting, and inspects the actual strategy. The low-memory sorted case must report disk work; the larger-memory sorted case must report memory work. Each still returns the independently calculated customer measures. These controls demonstrate mechanisms rather than recommend permanent planner switches. A useful experiment preserves the query contract and isolates the condition being investigated. Normal learner grading asks for the complete report and current successful Analyze evidence, not a particular physical method or a hardware-independent elapsed-time threshold.",
+    "Memory settings require scope as well as units. Work memory is a base allowance for an operation, not a promise that the entire query or application stays within one shared allowance. Several operations or concurrent sessions can need memory, and hash operations have an additional multiplier. Treat a local improvement as a hypothesis about this workload and machine, not permission to raise every session's memory blindly. Our fixture measurements and plan fields describe actual owned runs. Larger profiles, runtime resource guards and hardware calibration remain separate delivery work. Later executor and observability lessons will connect concurrent memory demand, batching, temporary I/O and workload tradeoffs to controlled measurements in more depth.",
+    "Before Check, verify population, grain, unknown handling, grouping level and deterministic order together. Confirm the all-null day, repeated amount ties, distinct-value diversity and complete paid-group qualification in your results. Then inspect the successful Analyze of the current SQL: estimates and actual values remain separate, and an edit or reset requires another measurement. Fresh assessment distributions change the hot share from sixty-five to forty-five and twenty-five percent while preserving the authored edge cases. Each exercise owns its disposable lab; Reset reconstructs the starting events. The mechanisms shown in the cinematic journey remain illustrations. The next chapter will read loops, timings and buffers with the same discipline about what each reported field actually measures."
+  ]
+}

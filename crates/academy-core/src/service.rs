@@ -539,6 +539,10 @@ mod scan_tests;
 mod join_tests;
 
 #[cfg(test)]
+#[path = "sort_aggregate_tests.rs"]
+mod sort_aggregate_tests;
+
+#[cfg(test)]
 mod tests {
     use super::*;
     #[tokio::test]
