@@ -1,6 +1,37 @@
 use academy_core::{equivalent, Progress};
 
 #[test]
+fn measured_storage_preserves_old_progress_and_rejects_estimates() {
+    let directory = tempfile::tempdir().unwrap();
+    let path = directory.path().join("progress.sqlite");
+    let old = rusqlite::Connection::open(&path).unwrap();
+    old.execute_batch("CREATE TABLE progress(exercise TEXT PRIMARY KEY,sql TEXT NOT NULL DEFAULT '',unlocked INTEGER NOT NULL DEFAULT 0,passed_revision TEXT); INSERT INTO progress VALUES('first','SELECT 1',1,'v1');").unwrap();
+    drop(old);
+    let progress = Progress::open(&path).unwrap();
+    assert!(progress.passed("first", "v1").unwrap() && progress.unlocked("first").unwrap());
+    assert_eq!(
+        progress.script("first").unwrap().as_deref(),
+        Some("SELECT 1")
+    );
+    assert!(!progress.has_analysis("first", "v1", "SELECT 1").unwrap());
+    let estimate = serde_json::json!([{"Plan":{"Plan Rows":1}}]);
+    assert!(progress
+        .record_analysis("first", "v1", "SELECT 1", &estimate)
+        .is_err());
+    let measured = serde_json::json!([{"Plan":{"Actual Rows":1,"Actual Loops":1}}]);
+    progress
+        .record_analysis("first", "v1", "SELECT 1", &measured)
+        .unwrap();
+    assert!(!progress.has_analysis("other", "v1", "SELECT 1").unwrap());
+    assert!(!progress.has_analysis("first", "v2", "SELECT 1").unwrap());
+    assert!(!progress.has_analysis("first", "v1", "SELECT 2").unwrap());
+    assert!(Progress::open(&path)
+        .unwrap()
+        .has_analysis("first", "v1", "SELECT 1")
+        .unwrap());
+}
+
+#[test]
 fn saving_a_draft_preserves_it_without_unlocking_or_changing_a_pass() {
     let directory = tempfile::tempdir().unwrap();
     let path = directory.path().join("progress.sqlite");

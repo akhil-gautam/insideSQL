@@ -1,0 +1,107 @@
+{
+  "id": "06",
+  "published": false,
+  "fixture": "commerce",
+  "title": "Your first plan investigation",
+  "subtitle": "Connect correct SQL and result grain to estimated plans, measured row flow, buffers and observer overhead.",
+  "objectives": [
+    "Read a plan as a tree of operations rather than a SQL clause trace",
+    "Distinguish predicted rows and costs from executed rows, loops and elapsed time",
+    "Connect filtering, joins, aggregation and limiting to the required result grain",
+    "Inspect buffer evidence without treating a cache hit as a physical disk read",
+    "Produce a correct query and successfully Analyze that current SQL before assessment",
+    "Preserve a reproducible comparison without requiring a particular scan or join algorithm"
+  ],
+  "references": [
+    "https://www.postgresql.org/docs/18/using-explain.html",
+    "https://www.postgresql.org/docs/18/sql-explain.html",
+    "https://www.postgresql.org/docs/18/queries-table-expressions.html",
+    "https://www.postgresql.org/docs/18/queries-order.html",
+    "https://www.postgresql.org/docs/18/queries-limit.html",
+    "https://www.postgresql.org/docs/18/functions-aggregate.html"
+  ],
+  "exercises": [
+    {
+      "id": "06-01",
+      "title": "Trace a selective paid-order filter",
+      "prompt": "Return id and total for every paid order whose known total is at least 100, in that column order. Sort by order id ascending. Use Explain, then successfully Analyze the current query before Check. Inspect estimated versus actual output rows and the displayed filter or index condition; no particular scan type is required.",
+      "starter": "SELECT id, total\nFROM orders\n-- select the required paid amounts\nORDER BY id;",
+      "ordered": true,
+      "require_analyze": true,
+      "revision": "06-01-v1-commerce-v1-measurement-v1",
+      "solution_sql": "SELECT id,total FROM orders WHERE status='paid' AND total>=100 ORDER BY id",
+      "explanation": "The two restrictions define the result population, and null amounts do not satisfy the amount comparison. Analyze supplies real execution evidence; Check independently verifies the result across fresh variants. Read the actual selected access path rather than assuming a WHERE clause mandates an index."
+    },
+    {
+      "id": "06-02",
+      "title": "Inspect the hot customer population",
+      "prompt": "Return id, status and total for every order belonging to customer 201, in that column order. Preserve unknown totals and all statuses. Sort by order id ascending. Explain and Analyze this current SQL before Check, and compare output rows with the first exercise without treating fewer output rows as proof of less input work.",
+      "starter": "SELECT id, status, total\nFROM orders\n-- retain all activity for the hot customer\nORDER BY id;",
+      "ordered": true,
+      "require_analyze": true,
+      "revision": "06-02-v1-commerce-v1-measurement-v1",
+      "solution_sql": "SELECT id,status,total FROM orders WHERE customer_id=201 ORDER BY id",
+      "explanation": "The hot customer includes paid, pending and cancelled orders. Restrict only the customer identity and preserve every matching event. Its large share of this synthetic population makes cardinality and selectivity visible; neither result size nor SQL text alone chooses the physical scan."
+    },
+    {
+      "id": "06-03",
+      "title": "Investigate absence without losing customers",
+      "prompt": "Return id and name of every customer with no order of any status, once per customer. Sort by customer id ascending. Successfully Analyze this query before Check. Inspect how the selected plan expresses absence; do not require one named anti-join algorithm.",
+      "starter": "SELECT c.id, c.name\nFROM customers AS c\n-- retain customers with no orders\nORDER BY c.id;",
+      "ordered": true,
+      "require_analyze": true,
+      "revision": "06-03-v1-commerce-v1-measurement-v1",
+      "solution_sql": "SELECT c.id,c.name FROM customers c WHERE NOT EXISTS(SELECT 1 FROM orders o WHERE o.customer_id=c.id) ORDER BY c.id",
+      "explanation": "The correlated absence condition excludes any customer with a matching order, including unpaid activity. Each retained identity appears once even when names repeat. A correctly expressed left anti join can also be accepted after its own measurement; correctness does not depend on SQL spelling or a specific join node."
+    },
+    {
+      "id": "06-04",
+      "title": "Separate scalar output from aggregate input",
+      "prompt": "For paid orders in the UTC interval from 2026-02-02 00:00:00+00 inclusive to 2026-02-03 00:00:00+00 exclusive, return exactly one row: order count, count of known totals and sum of known totals. Use numeric zero for an empty or all-null sum. Analyze the current query before Check, and compare the one-row aggregate output with the rows entering it.",
+      "starter": "SELECT COUNT(*)\nFROM orders\n-- define the paid UTC interval and the other measures",
+      "ordered": true,
+      "require_analyze": true,
+      "revision": "06-04-v1-commerce-v1-measurement-v1",
+      "solution_sql": "SELECT COUNT(*),COUNT(total),COALESCE(SUM(total),0) FROM orders WHERE status='paid' AND ordered_at>='2026-02-02 00:00:00+00' AND ordered_at<'2026-02-03 00:00:00+00'",
+      "explanation": "The scalar aggregate returns one summary row even though its input contains several orders or none. COUNT(*) and COUNT(total) measure different populations. The half-open timestamp interval defines the UTC reporting boundary explicitly. The root row count cannot tell you how much work occurred beneath aggregation."
+    },
+    {
+      "id": "06-05",
+      "title": "Account for every customer summary",
+      "prompt": "Return one row per customer: customer id, name, paid order count and sum of known paid totals. A customer without paid activity gets count zero and numeric sum zero. Preserve every customer, count paid orders with null amounts, and sort by customer id ascending. Analyze this query before Check and compare join input/output grain with summary output grain.",
+      "starter": "SELECT c.id, c.name\nFROM customers AS c\n-- attach only paid matches and summarize each customer\nORDER BY c.id;",
+      "ordered": true,
+      "require_analyze": true,
+      "revision": "06-05-v1-commerce-v1-measurement-v1",
+      "solution_sql": "SELECT c.id,c.name,COUNT(o.id),COALESCE(SUM(o.total),0) FROM customers c LEFT JOIN orders o ON o.customer_id=c.id AND o.status='paid' GROUP BY c.id,c.name ORDER BY c.id",
+      "explanation": "Keep the paid restriction in the matching rule and count the nonnull order key, not the preserved unmatched row. Group by the customer identity and name so repeated names remain separate customers. The output has 52 customer rows in these fixtures, while the matching row population varies. Inspect the physical operations that perform those logical transformations."
+    },
+    {
+      "id": "06-06",
+      "title": "Investigate ordered early termination",
+      "prompt": "Return id and total for exactly the five paid orders with the greatest totals. Include paid orders with null totals in the ranking population but place those nulls last. Sort total descending, then id ascending to resolve ties, and take five. Analyze this current query before Check; inspect what work occurs beneath the result limit without assuming only five orders were read.",
+      "starter": "SELECT id, total\nFROM orders\nWHERE status = 'paid'\n-- establish complete ordering before limiting\nLIMIT 5;",
+      "ordered": true,
+      "require_analyze": true,
+      "revision": "06-06-v1-commerce-v1-measurement-v1",
+      "solution_sql": "SELECT id,total FROM orders WHERE status='paid' ORDER BY total DESC NULLS LAST,id ASC LIMIT 5",
+      "explanation": "A unique identity resolves equal amounts, and NULLS LAST states the required treatment of unknown totals under descending order. The limit selects five ordered results. Depending on the chosen access path, work below the limit can include many rows; the measured tree is the evidence for this run, not a universal promise about an algorithm."
+    }
+  ],
+  "transcript": [
+    "A correct result is the starting point of a plan investigation. Our mechanical database scene illustrates the journey from SQL through planning and execution. It does not record the executor's actual events. This chapter connects that illustration to two different kinds of engine evidence: Explain supplies the chosen plan and predictions, while Analyze executes your query and supplies measurements. The six exercises require a correct query and a successful Analyze of that current SQL before Check. They do not require a named scan, join algorithm or execution time. Keep the result contract beside the plan so every investigation remains about the question you actually need to answer.",
+    "Begin with paid orders whose known amounts are at least one hundred. Write the query without an Explain prefix in the editor; the workbench actions add the appropriate engine command. Run it to see the ids and amounts, then use Explain. Inspect the root and its children, the selected relation, and the condition displayed at the operation that applies it. A restriction may appear as a filter or an index condition depending on the selected path. The labels describe this plan. Do not infer that all predicates behave identically or that the presence of a primary key solves a condition on status and amount.",
+    "Analyze the same SQL next. Read estimated and actual output counts as separate observations. The actual count at the root should correspond to the rows your query returns in this visible fixture. That does not make it the number of source orders examined. If an operation displays removed rows, inspect those too and relate them to its condition. Do not add parent and child counts as if they were independent events. A row can pass through several operations. Make a short note containing the query, the requested grain, the output ids and the measured tree. Your own returned values remain a stronger correctness check than a plausible-looking node label.",
+    "The second exercise retains every order for customer two hundred and one. This synthetic customer dominates much of the generated workload. Keep all its statuses and preserve unknown amounts. Compare its result population with the selective paid-amount query. A large difference in output counts explains a difference in selectivity, but it does not by itself prove a proportional difference in input work. Both queries may inspect many of the same source rows. Read the actual selected operations. The fresh assessment variants change generated counts and statuses, so a memorized output count from the visible sample is not a correct implementation of either report.",
+    "Estimated cost and elapsed time answer different questions. The planner's cost values are relative inputs to its choice; they are not milliseconds. A parent's cost includes work beneath it, so summing every node's cost double-counts that model. Measured node times also require care about children and loops. Separately, the workbench displays client elapsed time, which includes work outside the executor measurement, such as the command round trip and result handling. Inspect the root JSON fields for the reported planning and execution figures. Keep the units and observation boundary with each number. A small number without its boundary is an unreliable explanation of performance.",
+    "Absence gives us a different result grain. The third exercise asks for customers with no orders of any status. Noor is a visible baseline example; Omar is not, because unpaid orders still exist for him. Use the customer identity so repeated names do not merge people. Analyze the query and look for how the chosen plan checks matching order keys. An existence expression may be implemented through different physical paths. A correctly written anti join can also produce the required result. The grader accepts equivalent results after that query's own Analyze, rather than demanding a particular SQL spelling or a universal node name.",
+    "The fourth query returns a scalar daily summary for paid activity in an explicit UTC interval. Count orders separately from known amounts and apply the requested zero convention to the sum. It returns one result row, even when the selected input is empty. Inspect the rows entering the aggregate as well as the row leaving it. This is a concrete counterexample to judging query effort from root output alone. Twenty selected events and no selected events can both produce a one-row summary. Your plan notes should identify the interval, the paid population, the known-amount population, and the operation that collapses them into that single reported row.",
+    "For the fifth report, preserve every customer and summarize only paid matches. Customer count stays fifty-two in these authored variants, while paid-order activity changes. Count the nonnull order key so an unmatched customer contributes zero paid orders, and keep the paid condition in the join matching rule. Group by identities rather than names alone. Follow the row flow through the measured join and aggregate operations. A repeated customer identity before grouping can be expected; a missing inactive customer afterward is a correctness problem. Use the baseline customers to explain zero cases and the hot customer to explain high multiplicity.",
+    "The last exercise orders paid amounts and keeps five results. State both the handling of null amounts and the tie-break rule. Several real orders can have the same amount; they remain distinct events. A descending amount order alone does not define a reproducible order among those ties. The unique order id resolves it. Inspect the selected operation beneath the limit and its input. The result contains five rows, but establishing their order may require much more work. A suitable ordered access path could permit early termination in another setting. Record what this plan did and save the more general indexing investigation for the upcoming access-method chapters.",
+    "Expand the measured JSON and inspect buffer counters where they are reported. Shared hits represent accesses satisfied from PostgreSQL's shared buffer cache; shared reads represent blocks brought into that cache, which may still be available from the operating system cache. They are not automatically physical storage-device reads. A single data page can be accessed repeatedly, and upper-level counters can include child work. Do not turn the sum of every displayed counter into a unique page inventory. Later storage chapters will investigate the cache layers and I/O boundaries directly. Here, record the counter names and their scope before drawing a conclusion about the source of work.",
+    "Inspect loops before treating a node's count or time as a total. PostgreSQL reports those execution values per loop when a node repeats, and the display may round values. Multiplying a rounded average can provide an interpretation without proving an exact underlying event count. If a small fixture selects a plan whose nodes mostly run once, that is still useful evidence; do not force a repeated-loop plan merely to match the narration. Later controlled join experiments will make rescans and repeated inner work easier to isolate. This chapter establishes the habit of keeping loop context beside every measured quantity you cite.",
+    "Measurement itself changes the observation. Analyze executes the command and adds instrumentation overhead, while cache state and concurrent activity can change timings between runs. These tiny inspection fixtures are designed for accounting and correctness, not for stable latency claims. Reset when you need the starting data again, keep the query and conditions fixed during a comparison, and record repetitions rather than selecting the fastest convenient run. Our current exercises have no hardware-independent millisecond threshold. The workbench's write labs also roll back mutating Analyze; that behavior does not make all possible database side effects reversible or turn estimated output into execution evidence.",
+    "The current-query evidence status is deliberately specific. A successful Analyze records the engine's measured plan with the exercise identity, revision and SQL that produced it. Explain, an invalid statement or a cancelled run does not supply that proof. Editing the query means the new SQL needs its own measurement before Check. Reset removes its measurement evidence while preserving the script and an already earned pass. Evidence survives reopening the app. This is an offline learning record, not tamper-proof certification, and it does not prove that you interpreted the tree correctly. Use your notes and the readable tree alongside the recorded action to develop that interpretation.",
+    "Complete the six investigations by accounting for a selective order filter, hot-customer activity, customer absence, a scalar daily aggregate, all-customer summaries and an ordered five-row result. Each query must be correct across three fresh commerce variants, and each must have measured evidence for its current SQL. These checks establish practical habits rather than pretending you have mastered every optimizer detail. Carry the contracts, identities, loop context and observation boundaries into the next module, where we examine plans and controlled comparisons more deeply. A useful explanation connects what the result means with where the engine spent work, while clearly separating predictions, measurements and the illustrations that help you reason about them."
+  ]
+}

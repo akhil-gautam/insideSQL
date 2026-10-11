@@ -14,8 +14,8 @@ Range.prototype.getClientRects=()=>[] as unknown as DOMRectList;
 Range.prototype.getBoundingClientRect=()=>new DOMRect();
 afterEach(()=>{cleanup();vi.clearAllMocks();vi.unstubAllGlobals();});
 
-function start({published=true,passes=true,exerciseCount=6,nativeRoot,commerce=false,writes=false}:{published?:boolean;passes?:boolean;exerciseCount?:number;nativeRoot?:string;commerce?:boolean;writes?:boolean}={}){
-  const chapters=[{...chapter01,fixture:'orders'},{...chapter02,fixture:writes?'commerce_writes':'orders',published,exercises:chapter02.exercises.slice(0,exerciseCount)},...(commerce?[{...chapter03,published:true}]:[])];
+function start({published=true,passes=true,exerciseCount=6,nativeRoot,commerce=false,writes=false,measurement=false}:{published?:boolean;passes?:boolean;exerciseCount?:number;nativeRoot?:string;commerce?:boolean;writes?:boolean;measurement?:boolean}={}){
+  const chapters=[{...chapter01,fixture:'orders'},{...chapter02,fixture:writes?'commerce_writes':'orders',published,exercises:chapter02.exercises.slice(0,exerciseCount).map(e=>({...e,require_analyze:measurement}))},...(commerce?[{...chapter03,published:true}]:[])];
   const progress:Progress=Object.fromEntries(chapters.flatMap(c=>c.exercises.map(e=>[e.id,{unlocked:false,passed:passes&&(c.id==='01'||commerce&&c.id==='02'),sql:e.id==='02-01'?'':null}])));
   vi.mocked(call).mockImplementation(async(command,input)=>{
     if(command==='course')return {chapter:chapters[0],chapters,fixtures:{...fixtureCatalog,commerce_writes:{...fixtureCatalog.commerce,writable_tables:['orders']}},planned_chapters:84,planned_exercises:504,available_chapters:published?2:1,server_version:'18.3',media_directory:nativeRoot};
@@ -42,6 +42,32 @@ test('write labs explain Run, rolled-back Analyze, fresh Check and Reset',async(
   expect(screen.getByText('Run changes this disposable lab. Analyze measures and rolls back. Check uses fresh copies. Reset restores starting data.')).toBeTruthy();
   fireEvent.click(screen.getByRole('button',{name:/Chapter 1:/}));
   expect(screen.queryByText(/Run changes this disposable lab/)).toBeNull();
+});
+
+test('plan exercises explain current-query measurement and update its status after Analyze',async()=>{
+  const saved=start({measurement:true});
+  fireEvent.click(await screen.findByRole('button',{name:/Chapter 2:/}));
+  expect(screen.getByText('Analyze the current SQL before Check. After editing or resetting, measure it again.')).toBeTruthy();
+  const normal=vi.mocked(call).getMockImplementation()!;
+  vi.mocked(call).mockImplementation(async(command,input)=>{
+    if(command==='run'){
+      saved['02-01'].analyzed=true;
+      return {columns:[],column_types:[],rows:[],plan:null,error:null,truncated:false,elapsed_ms:0};
+    }
+    if(command==='reset'){saved['02-01'].analyzed=false;return;}
+    return normal(command,input);
+  });
+  fireEvent.click(screen.getByRole('button',{name:'Analyze'}));
+  expect(await screen.findByText('Current SQL has measured execution evidence.')).toBeTruthy();
+  fireEvent.click(screen.getByRole('button',{name:'Reset lab'}));
+  await waitFor(()=>expect(screen.queryByText('Current SQL has measured execution evidence.')).toBeNull());
+  await waitFor(()=>expect(screen.getByRole('button',{name:'Analyze'}).hasAttribute('disabled')).toBe(false));
+  fireEvent.click(screen.getByRole('button',{name:'Analyze'}));
+  expect(await screen.findByText('Current SQL has measured execution evidence.')).toBeTruthy();
+  await waitFor(()=>expect(screen.getByRole('button',{name:'Analyze'}).hasAttribute('disabled')).toBe(false));
+  fireEvent.input(screen.getByRole('textbox',{name:'SQL query'}),{target:{textContent:'SELECT 2'}});
+  await waitFor(()=>expect(saved['02-01'].sql).toBe('SELECT 2'));
+  expect(screen.queryByText('Current SQL has measured execution evidence.')).toBeNull();
 });
 
 test('an unlocked chapter uses its own lesson, counters and saved drafts',async()=>{

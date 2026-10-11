@@ -24,6 +24,8 @@ pub struct Exercise {
     pub starter: String,
     pub ordered: bool,
     pub revision: String,
+    #[serde(default)]
+    pub require_analyze: bool,
     #[serde(skip_serializing)]
     pub solution_sql: String,
     #[serde(skip_serializing)]
@@ -145,7 +147,8 @@ impl Academy {
     pub fn progress(&self) -> Result<Value> {
         let mut result = serde_json::Map::new();
         for e in self.chapters.iter().flat_map(|c| &c.exercises) {
-            result.insert(e.id.clone(),json!({"unlocked":self.store.unlocked(&e.id)?,"passed":self.store.passed(&e.id,&e.revision)?,"sql":self.store.script(&e.id)?}));
+            let sql = self.store.script(&e.id)?;
+            result.insert(e.id.clone(),json!({"unlocked":self.store.unlocked(&e.id)?,"passed":self.store.passed(&e.id,&e.revision)?,"sql":sql,"analyzed":self.store.has_analysis(&e.id,&e.revision,sql.as_deref().unwrap_or(""))?}));
         }
         Ok(Value::Object(result))
     }
@@ -233,6 +236,20 @@ impl Academy {
                 .await
                 .map_err(|e| e.to_string())?;
         }
+        if request.mode == "analyze" && exercise.require_analyze {
+            if let Ok(measured) = &result {
+                if measured.error.is_none() && !measured.truncated && !*active.cancelled.borrow() {
+                    if let Some(plan) = &measured.plan {
+                        self.store.record_analysis(
+                            &exercise.id,
+                            &exercise.revision,
+                            &request.sql,
+                            plan,
+                        )?;
+                    }
+                }
+            }
+        }
         result
     }
     pub async fn check(&self, request: RunRequest) -> Result<CheckResult> {
@@ -244,6 +261,16 @@ impl Academy {
         }
         if !self.store.attempt(&e.id, &request.sql, &e.starter)? {
             return Err("Write a query before checking".into());
+        }
+        if e.require_analyze && !self.store.has_analysis(&e.id, &e.revision, &request.sql)? {
+            return Ok(CheckResult {
+                passed: false,
+                variants_passed: 0,
+                variants_total: 3,
+                message:
+                    "Analyze this current query successfully, then Check it against fresh fixtures."
+                        .into(),
+            });
         }
         let fixture = self.fixture(&e.id)?;
         let mutation = !fixture.writable_tables().is_empty();
@@ -335,7 +362,8 @@ impl Academy {
         self.cluster.drop_lab(&db, &role).await?;
         self.cluster
             .create_lab(&db, &role, self.fixture(id)?, 0)
-            .await
+            .await?;
+        self.store.clear_analysis(id)
     }
     pub async fn shutdown(&self) -> Result<()> {
         let _guard = self.lifecycle.write().await;
@@ -493,6 +521,10 @@ mod grouping_tests;
 #[cfg(test)]
 #[path = "mutation_tests.rs"]
 mod mutation_tests;
+
+#[cfg(test)]
+#[path = "plan_tests.rs"]
+mod plan_tests;
 
 #[cfg(test)]
 mod tests {

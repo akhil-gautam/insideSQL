@@ -1,8 +1,8 @@
-export type Exercise={id:string;title:string;prompt:string;starter:string;ordered:boolean;revision:string};
+export type Exercise={id:string;title:string;prompt:string;starter:string;ordered:boolean;revision:string;require_analyze?:boolean};
 export type Chapter={id:string;published:boolean;fixture:string;title:string;subtitle:string;objectives:string[];exercises:Exercise[];transcript:string[]};
 export type Fixture={title:string;description:string;writable_tables?:string[];tables:{name:string;columns:Record<string,string>}[]};
 export type Course={chapter:Chapter;chapters:Chapter[];fixtures:Record<string,Fixture>;planned_chapters:number;planned_exercises:number;available_chapters:number;server_version:string;media_directory?:string};
-export type Progress=Record<string,{unlocked:boolean;passed:boolean;sql:string|null}>;
+export type Progress=Record<string,{unlocked:boolean;passed:boolean;sql:string|null;analyzed?:boolean}>;
 export type QueryResult={columns:string[];column_types:number[];rows:(string|null)[][];plan:Plan[]|null;error:{message:string;code:string|null;position:number|null}|null;truncated:boolean;elapsed_ms:number};
 export type Plan={Plan:PlanNode;'Planning Time'?:number;'Execution Time'?:number};
 export type PlanNode={'Node Type':string;Plans?:PlanNode[];[key:string]:unknown};

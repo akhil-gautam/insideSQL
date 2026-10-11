@@ -8,7 +8,7 @@ pub struct Progress {
 impl Progress {
     pub fn open(path: &Path) -> Result<Self> {
         let connection = Connection::open(path).map_err(|e| e.to_string())?;
-        connection.execute_batch("PRAGMA journal_mode=WAL; CREATE TABLE IF NOT EXISTS progress (exercise TEXT PRIMARY KEY, sql TEXT NOT NULL DEFAULT '', unlocked INTEGER NOT NULL DEFAULT 0, passed_revision TEXT);").map_err(|e|e.to_string())?;
+        connection.execute_batch("PRAGMA journal_mode=WAL; CREATE TABLE IF NOT EXISTS progress (exercise TEXT PRIMARY KEY, sql TEXT NOT NULL DEFAULT '', unlocked INTEGER NOT NULL DEFAULT 0, passed_revision TEXT); CREATE TABLE IF NOT EXISTS analysis (exercise TEXT PRIMARY KEY, revision TEXT NOT NULL, sql TEXT NOT NULL, plan TEXT NOT NULL);").map_err(|e|e.to_string())?;
         Ok(Self {
             connection: Mutex::new(connection),
         })
@@ -74,6 +74,39 @@ impl Progress {
             )
             .optional()
             .map_err(|e| e.to_string())
+    }
+    pub fn record_analysis(
+        &self,
+        exercise: &str,
+        revision: &str,
+        sql: &str,
+        plan: &serde_json::Value,
+    ) -> Result<()> {
+        let node = &plan[0]["Plan"];
+        if !node["Actual Rows"].is_number() || !node["Actual Loops"].is_number() {
+            return Err("Only a measured PostgreSQL plan can be recorded".into());
+        }
+        self.connection.lock().map_err(|e|e.to_string())?.execute("INSERT INTO analysis(exercise,revision,sql,plan) VALUES (?1,?2,?3,?4) ON CONFLICT(exercise) DO UPDATE SET revision=excluded.revision,sql=excluded.sql,plan=excluded.plan",params![exercise,revision,sql,plan.to_string()]).map_err(|e|e.to_string())?;
+        Ok(())
+    }
+    pub fn has_analysis(&self, exercise: &str, revision: &str, sql: &str) -> Result<bool> {
+        self.connection
+            .lock()
+            .map_err(|e| e.to_string())?
+            .query_row(
+                "SELECT EXISTS(SELECT 1 FROM analysis WHERE exercise=?1 AND revision=?2 AND sql=?3)",
+                params![exercise, revision, sql],
+                |r| r.get(0),
+            )
+            .map_err(|e| e.to_string())
+    }
+    pub fn clear_analysis(&self, exercise: &str) -> Result<()> {
+        self.connection
+            .lock()
+            .map_err(|e| e.to_string())?
+            .execute("DELETE FROM analysis WHERE exercise=?1", [exercise])
+            .map_err(|e| e.to_string())?;
+        Ok(())
     }
 }
 fn has_content(sql: &str) -> bool {
