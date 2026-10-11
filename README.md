@@ -2,7 +2,7 @@
 
 A native Tauri/Rust learning workbench with real, disposable PostgreSQL labs, Theatre.js mechanism scenes and Remotion chapter videos.
 
-The complete approved scope is [docs/PLAN.md](docs/PLAN.md). Verified delivery status is [docs/PROGRESS.md](docs/PROGRESS.md). The full course is **not complete**: the current implementation is the first chapter and application foundation, with later chapters still to author.
+The complete approved scope is [docs/PLAN.md](docs/PLAN.md). Verified delivery status is [docs/PROGRESS.md](docs/PROGRESS.md). The full course is **not complete**: chapter 1 is delivered, chapters 2–4 have unpublished authored drafts and tested queries, and later chapters remain to author.
 
 ## Local macOS development
 
@@ -51,6 +51,12 @@ The video renderer verifies repeated frame hashes before producing the complete 
 - Grading preserves duplicates, nulls, numeric values and specified row order.
 - Learner connections have no administrator or filesystem privileges.
 - Explain estimates and Analyze execution evidence are labeled separately.
+
+## Authored catalog
+
+Rust embeds contiguous `course/chapterNN.json` files at build time, starting at `01` and ending no later than `84`. Adding the next authored file requires no runner source-list edit. Malformed names, missing numbers and symlinked chapter files fail the build. Runtime validation still requires six exercises, valid identifiers and a published introductory chapter.
+
+Keep new chapters unpublished until their narrated media and acceptance gates pass. The current narration/render scripts produce chapter 1; adding catalog content does not generate another chapter's video or scene.
 
 ## Review
 

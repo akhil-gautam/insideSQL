@@ -65,15 +65,12 @@ impl Drop for ActiveRun<'_> {
 impl Academy {
     pub async fn start(home: &Path, postgres: &Path) -> Result<Self> {
         std::fs::create_dir_all(home).map_err(|e| e.to_string())?;
-        let chapters: Vec<Chapter> = [
-            include_str!("../../../course/chapter01.json"),
-            include_str!("../../../course/chapter02.json"),
-            include_str!("../../../course/chapter03.json"),
-        ]
-        .into_iter()
-        .map(serde_json::from_str)
-        .collect::<std::result::Result<_, _>>()
-        .map_err(|e| e.to_string())?;
+        let sources: &[&str] = include!(concat!(env!("OUT_DIR"), "/chapters.rs"));
+        let chapters: Vec<Chapter> = sources
+            .iter()
+            .map(|source| serde_json::from_str(source))
+            .collect::<std::result::Result<_, _>>()
+            .map_err(|e| e.to_string())?;
         validate_chapters(&chapters)?;
         let cluster = Cluster::start(&home.join("runtime"), postgres).await?;
         let academy = Self {
@@ -443,6 +440,10 @@ async fn execute(client: &Client, sql: &str, mode: &str, limit: usize) -> Result
     result.elapsed_ms = start.elapsed().as_millis();
     Ok(result)
 }
+
+#[cfg(test)]
+#[path = "grouping_tests.rs"]
+mod grouping_tests;
 
 #[cfg(test)]
 mod tests {

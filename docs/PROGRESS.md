@@ -28,7 +28,7 @@ Goal: implement the entire docs/PLAN.md and request Claude review after each com
 
 ## Remaining scope
 
-- Chapters 2–84 remain undelivered. Chapters 2 and 3 have unpublished authored drafts and tested SQL exercises; chapter 3 has its commerce fixture. Other fixture domains/profiles, later lab mechanisms, production recovery/resource monitoring and cross-platform packaging remain unimplemented.
+- Chapters 2–84 remain undelivered. Chapters 2–4 have unpublished authored drafts and tested SQL exercises; chapters 3–4 use the commerce fixture. Other fixture domains/profiles, later lab mechanisms, production recovery/resource monitoring and cross-platform packaging remain unimplemented.
 - This is a local development bundle; signing/notarization, redistribution notices and narration rights are release gates (docs/LICENSING.md).
 
 ## Decisions
@@ -66,3 +66,11 @@ Goal: implement the entire docs/PLAN.md and request Claude review after each com
 - Schema panel, exercise table hints and CodeMirror completions now use the chapter fixture. Learners retain SELECT-only access. Failed database creation removes its new role; failed authored setup removes its new database and role without dropping a preexisting database. Withdrawn prerequisites lock downstream labs even with saved passes; authored catalogs require exactly six questions.
 - Verification: 15 Rust/PostgreSQL tests, nine frontend tests and six browser checks pass. Production and native --no-bundle builds pass. Fresh local review clean (docs/reviews/commerce-joins.md). Native UI recheck is pending because the Mac was locked; the running app bundle was preserved.
 - Chapters 2/3 are not counted as delivered video chapters. Full Phase 2 and the original 84-chapter/504-exercise scope remain open. Claude export approval is still pending.
+
+## Grouping and compiled catalog — 2026-10-11
+
+- Chapter 4 is an unpublished authored draft with 1,472 transcript words in 14 sections, objectives, primary PostgreSQL 18 references and six complete SQL questions/reference explanations. It covers paid-customer summaries, all customers with zero activity, HAVING, UTC date/status pairs, deterministic grouped ranking with LIMIT and conditional daily aggregates.
+- Independent Rust calculations over raw customer/order rows match every reference on all three commerce variants. They assert tied activity counts and all-null paid amount groups. Reference queries return correctly typed UTC dates even after the test session changes to Asia/Kolkata. Five common wrong queries fail; the measured ranking plan exposes actual rows/loops at its aggregate, sort and limit operations.
+- Rust now discovers and embeds the contiguous authored catalog at build time. Empty catalogs, malformed/out-of-range names, gaps, directories masquerading as chapters and symlinks fail discovery. Course changes trigger rebuilds; existing runtime identifier, exact-six and publication validation remain in force. No first-three-chapter revision or fixture changed.
+- All chapter-four operations remain locked while unpublished, including Run/Explain/Analyze, Check, solution, save and reset. Verification: 20 core/PostgreSQL/catalog tests, nine frontend tests and six browser checks pass. Production and native --no-bundle builds pass; fresh local source review clean (docs/reviews/grouping-catalog.md).
+- No new video was rendered or published. Native UI recheck remains pending because the Mac was locked; the running app bundle was preserved. Specific Claude source-export approval remains pending, with no source exported. The full course goal remains active.

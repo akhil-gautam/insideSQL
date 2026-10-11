@@ -1,0 +1,9 @@
+# Grouping and compiled catalog verification
+
+Fresh read-only local review: **clean**, no actionable findings. Reviewer inspected the new chapter contracts, SQL, transcript, independent raw-row oracle, source discovery and existing backend/frontend publication gates. Chapters 1–3 and commerce fixture sources are unchanged from 4d12e83. This is a local source review, not an external Claude review; the reviewer did not run tests or export source.
+
+Parent verification: 20 Rust/PostgreSQL/catalog tests, nine frontend behavior tests and six browser tests pass (35 total). Production and native --no-bundle builds pass. Browser tests include all six cinematic layers, mobile/reduced motion/graphics fallback, stable paused replay, saved drafts, cancellation, complete local video/captions and actual SQL grading/resume.
+
+The new chapter access regression failed before chapter 4 existed. Catalog tests failed before discovery existed and now prove numeric ordering, gap/name/range failures, non-file rejection and Unix symlink rejection. Every reference matches independent typed calculations over raw PostgreSQL rows on all three variants; each also passes the real grader. Tied activity and all-null paid amount groups are explicitly asserted. UTC references retain correct dates after changing the test session timezone. Five deliberately wrong queries fail. Analyze returns measured aggregate, sort and limit nodes with actual row/loop fields for the pinned fixture/engine; no universal physical algorithm or latency is required by grading.
+
+Chapter 4 stays unpublished and all learner operations reject it. Its media has not been created. Native GUI smoke checking remains blocked by the locked Mac; the running app bundle was not replaced. Cross-platform delivery remains unverified. The existing frontend chunk-size warning remains recorded for Phase 2. Phase 1 acceptance still awaits resolution of specific Claude source-export approval; no source was sent.

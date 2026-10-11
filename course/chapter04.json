@@ -1,0 +1,102 @@
+{
+  "id": "04",
+  "published": false,
+  "fixture": "commerce",
+  "title": "Grouping, sorting and limits",
+  "subtitle": "Turn order rows into correct summaries, then trace aggregation, ordering and early termination through the measured plan.",
+  "objectives": [
+    "State the input and output grain of a grouped query",
+    "Distinguish row count, nonnull count and explicitly defined zero totals",
+    "Keep row restrictions separate from group restrictions",
+    "Build UTC daily summaries with independent conditional aggregates",
+    "Define deterministic ordering before limiting grouped results",
+    "Inspect measured aggregation and sort work without assuming LIMIT avoids all input work"
+  ],
+  "references": [
+    "https://www.postgresql.org/docs/18/queries-table-expressions.html",
+    "https://www.postgresql.org/docs/18/functions-aggregate.html",
+    "https://www.postgresql.org/docs/18/sql-expressions.html",
+    "https://www.postgresql.org/docs/18/queries-order.html",
+    "https://www.postgresql.org/docs/18/queries-limit.html",
+    "https://www.postgresql.org/docs/18/functions-datetime.html",
+    "https://www.postgresql.org/docs/18/using-explain.html"
+  ],
+  "exercises": [
+    {
+      "id": "04-01",
+      "title": "Summarize paid orders by customer",
+      "prompt": "For each customer with at least one paid order, return customer_id, paid order count, and the sum of known orders.total amounts, in that column order. Include paid orders with a null total in the order count. If every paid amount in a group is null, return numeric zero for the sum. Sort by customer_id ascending.",
+      "starter": "SELECT customer_id\nFROM orders\nWHERE status = 'paid'\n-- summarize one row per customer\nORDER BY customer_id;",
+      "ordered": true,
+      "revision": "04-01-v1-commerce-v1",
+      "solution_sql": "SELECT customer_id,COUNT(*),COALESCE(SUM(total),0) FROM orders WHERE status='paid' GROUP BY customer_id ORDER BY customer_id",
+      "explanation": "The paid predicate defines the input rows. Group by the customer identity; COUNT(*) counts each paid order, while SUM(total) adds known amounts. COALESCE implements the explicit zero convention for a group with no known amounts. It does not assert that an unknown individual amount is known to be zero."
+    },
+    {
+      "id": "04-02",
+      "title": "Keep customers with zero paid orders",
+      "prompt": "Return every customer: customer id, paid order count, number of those paid orders with a known total, and the sum of their known totals, in that column order. A customer without a paid order gets counts of zero and numeric sum zero. Preserve all customers and sort by customer id ascending.",
+      "starter": "SELECT c.id\nFROM customers AS c\nLEFT JOIN orders AS o ON o.customer_id = c.id AND o.status = 'paid'\n-- summarize each customer\nORDER BY c.id;",
+      "ordered": true,
+      "revision": "04-02-v1-commerce-v1",
+      "solution_sql": "SELECT c.id,COUNT(o.id),COUNT(o.total),COALESCE(SUM(o.total),0) FROM customers c LEFT JOIN orders o ON o.customer_id=c.id AND o.status='paid' GROUP BY c.id ORDER BY c.id",
+      "explanation": "An unmatched left customer contributes a null-extended row. COUNT(*) would count that row as an order. COUNT(o.id) counts genuine orders because their identity is nonnull; COUNT(o.total) counts only known amounts. Keep the paid restriction in ON so customers with only unpaid orders survive."
+    },
+    {
+      "id": "04-03",
+      "title": "Filter completed customer groups",
+      "prompt": "Return customer_id, paid order count, and the sum of known paid order totals for customers with at least two paid orders and a known-amount sum strictly greater than 200. Count paid orders even if their total is null; use numeric zero when the entire sum has no known amount. Sort by the sum descending, then customer_id ascending.",
+      "starter": "SELECT customer_id\nFROM orders\nWHERE status = 'paid'\n-- group, then retain qualifying customer summaries\nORDER BY customer_id;",
+      "ordered": true,
+      "revision": "04-03-v1-commerce-v1",
+      "solution_sql": "SELECT customer_id,COUNT(*),COALESCE(SUM(total),0) FROM orders WHERE status='paid' GROUP BY customer_id HAVING COUNT(*)>=2 AND COALESCE(SUM(total),0)>200 ORDER BY COALESCE(SUM(total),0) DESC,customer_id",
+      "explanation": "WHERE selects paid input rows; HAVING tests the completed count and sum. Customer 101 has two paid orders of 125.50 and 80.00, so the combined 205.50 qualifies. Filtering individual amounts above 200 loses both orders and changes the report."
+    },
+    {
+      "id": "04-04",
+      "title": "Separate daily status groups in UTC",
+      "prompt": "For each observed combination of UTC order date and status, return the date as a PostgreSQL date, status, order count, count of known totals, and the sum of known totals, in that column order. A group with no known totals has numeric sum zero. Do not add missing date/status combinations. Sort by date ascending, then status ascending.",
+      "starter": "SELECT (ordered_at AT TIME ZONE 'UTC')::date AS order_day, status\nFROM orders\n-- aggregate each observed date/status pair\nORDER BY order_day, status;",
+      "ordered": true,
+      "revision": "04-04-v1-commerce-v1",
+      "solution_sql": "SELECT (ordered_at AT TIME ZONE 'UTC')::date AS order_day,status,COUNT(*),COUNT(total),COALESCE(SUM(total),0) FROM orders GROUP BY (ordered_at AT TIME ZONE 'UTC')::date,status ORDER BY order_day,status",
+      "explanation": "The two grouping expressions define the pair grain. Convert the instant to a UTC local timestamp before taking its date, so the reporting boundary is explicit. Count rows separately from known amounts. This exercise returns observed groups, not a calendar crossed with every possible status."
+    },
+    {
+      "id": "04-05",
+      "title": "Limit the completed activity ranking",
+      "prompt": "Return exactly the five customers with the most paid orders: customer_id, paid order count, and the sum of known paid order totals, in that column order. Count paid orders with null totals; use numeric zero for an all-null sum. Rank by paid order count descending and break every tie by customer_id ascending. Aggregate all paid orders before taking the five customers.",
+      "starter": "SELECT customer_id\nFROM orders\nWHERE status = 'paid'\n-- complete customer summaries, rank and take five\nLIMIT 5;",
+      "ordered": true,
+      "revision": "04-05-v1-commerce-v1",
+      "solution_sql": "SELECT customer_id,COUNT(*),COALESCE(SUM(total),0) FROM orders WHERE status='paid' GROUP BY customer_id ORDER BY COUNT(*) DESC,customer_id ASC LIMIT 5",
+      "explanation": "LIMIT selects five grouped results after the requested ordering. The unique customer id resolves tied counts. Limiting the order input first produces incomplete customer measures. Sorting only by count leaves the order and membership among tied customers unspecified."
+    },
+    {
+      "id": "04-06",
+      "title": "Pivot status counts without losing daily inputs",
+      "prompt": "For every observed UTC order date, return that date as a PostgreSQL date, paid count, pending count, cancelled count, refunded count, and the sum of known paid totals, in that column order. A missing status contributes count zero and a day with no known paid total contributes numeric sum zero. Include days with no paid orders and sort by date ascending.",
+      "starter": "SELECT (ordered_at AT TIME ZONE 'UTC')::date AS order_day\nFROM orders\n-- compute separate status counts and the paid amount for each day\nORDER BY order_day;",
+      "ordered": true,
+      "revision": "04-06-v1-commerce-v1",
+      "solution_sql": "SELECT (ordered_at AT TIME ZONE 'UTC')::date AS order_day,COUNT(*) FILTER(WHERE status='paid'),COUNT(*) FILTER(WHERE status='pending'),COUNT(*) FILTER(WHERE status='cancelled'),COUNT(*) FILTER(WHERE status='refunded'),COALESCE(SUM(total) FILTER(WHERE status='paid'),0) FROM orders GROUP BY (ordered_at AT TIME ZONE 'UTC')::date ORDER BY order_day",
+      "explanation": "Each FILTER chooses the input for its own aggregate while the day retains orders of every status. A global WHERE paid removes unpaid days. COUNT(CASE WHEN paid THEN 1 ELSE 0 END) counts both ones and zeroes because both are nonnull. A CASE with an omitted ELSE or an appropriately defined SUM can be equivalent; the grader accepts correct results rather than requiring FILTER syntax."
+    }
+  ],
+  "transcript": [
+    "A summary is a new relation with a new grain. The previous chapter protected order identities while joining customers, lines, and payments. Now we deliberately collapse orders into customer and daily summaries. Use the same commerce lab, including its hot customer, missing relationships, repeated amounts, and unknown totals. Start with a result contract: which identities define one output row, which events contribute to each measure, and how should an absent or unknown amount be represented? These questions come before any performance claim. In this chapter we will produce six reports and inspect the aggregation, sorting, and limit work that PostgreSQL actually performs for one of them.",
+    "Run a small order listing for customer one hundred and one. The two paid orders have declared amounts one hundred twenty-five and fifty cents, and eighty. Their order count is two and their known-amount sum is two hundred five and fifty cents. These numbers are an independent check you can calculate before submitting SQL. Then remove the customer restriction and group the paid orders by customer id. One output row now represents a customer with paid activity. The generated customers belong to the same report. Hardcoding the three baseline customer identities would miss most of the workload, and it will fail assessment against fresh variants.",
+    "Keep the population and measure definitions explicit. COUNT star includes every paid order in the selected input. COUNT total includes only those whose amount is known. SUM total adds known numeric amounts; an all-null input does not produce a known sum automatically. Our exercises request zero for that aggregate case, so apply that convention to the result. Do not silently claim that the underlying unknown order amount was zero. The second report displays both order count and known-amount count precisely so a reader can see this distinction. In the generated workload, null totals occur at regular intervals; the lesson does not depend on a single exceptional baseline row.",
+    "Change the population to every customer, including those with no paid orders. Reuse the left join from chapter three and keep the paid restriction in its matching rule. Now inspect Noor, who has no orders, and Omar, who has only unpaid orders. Each has a preserved row with no order identity. Counting that row with COUNT star would report one paid order. Count the nonnull order key instead. Counting the nullable total gives the separate known-amount count. Compare the three measures for an active customer, an inactive customer, and a customer with an unknown amount. An aggregate expression is only correct relative to the rows it receives.",
+    "Some reports filter groups rather than individual events. The third task requires at least two paid orders and a combined known amount strictly above two hundred. Our two baseline orders for customer one hundred and one qualify together; neither exceeds two hundred alone. Write the paid row restriction before grouping, then test the completed count and amount. Try the wrong individual-amount restriction and inspect the missing customer. This experiment exposes a semantic change that could otherwise look like an efficient reduction in input rows. Keep the qualifying customer's two order identities beside its summary while debugging, rather than treating the final amount as an unexplained scalar.",
+    "The output of grouping needs an ordering contract of its own. A group key identifies a result row but does not promise the rows arrive sorted. In the customer reports, request ascending identity explicitly. In the qualifying-customer report, sort the sum descending and then identity ascending. Imagine two customers both summing to two hundred forty: the amount alone cannot choose their relative order. The second key resolves that question. Stable ordering is part of a reproducible report and becomes essential when selecting only part of it. Avoid relying on a convenient order observed during one run of a small fixture.",
+    "Daily reporting introduces a second boundary: what is a day? The lab stores order instants with a time zone and runs sessions in UTC. Still state the UTC reporting boundary in the query rather than leaving it to a session default. Convert the instant to a UTC wall-clock timestamp, then take its date. The fourth exercise groups each observed date and status pair. A day can have separate paid, pending, and cancelled summaries, while the baseline refunded day contributes its own pair. A nullable amount is still an order. Return the date as a date value, not a formatted label whose type or alphabetical ordering changes the contract.",
+    "Inspect the baseline day containing order nine. Its pending order has an unknown amount. The pair report must return order count one, known count zero, and the explicitly requested sum zero. A day without any refunded order has no refunded pair in that report. That is different from the sixth task, whose grain is the day alone and whose refunded column should be zero. These two shapes answer different questions over the same rows. Before building a dashboard, decide whether missing combinations should be absent rows, zero columns, or calendar rows manufactured by joining another relation. This chapter requests only observed dates and does not introduce a calendar table.",
+    "Now rank customers by paid activity and keep five. First complete the paid-order count and known-amount sum for each customer. Order those groups by count descending and identity ascending, then take five result rows. The commerce variants contain tied activity counts near this ranking, so the identity rule is observable. Try taking the first five paid orders before aggregation. You obtain summaries of that tiny subset, not the five busiest customers across the workload. Customer two hundred and one dominates much of the generated activity; its full count makes this error obvious. The measure and the ranking population both change when the limit is misplaced.",
+    "For the daily pivot, give each measure its own status restriction while retaining the whole day's input. A paid count should inspect paid orders; a pending count should inspect pending orders. The paid amount should use only known paid totals. A day containing only pending activity still needs a row, with a zero paid count and the requested zero paid sum. Try a global paid restriction and watch those days vanish. Try counting a conditional expression that returns one for paid and zero otherwise. Zero is still a known value, so it is counted. Equivalent formulations are welcome, but inspect their behavior on a day with no matches before trusting them.",
+    "Use the native Analyze action on the completed activity ranking. Read the returned plan from its children toward the output: find where paid orders enter, where they become customer groups, where the count-based order is established, and where five results are selected. The test workload exercises these operations on the pinned engine; your own plan is the evidence for your run. Compare the rows entering aggregation with the customer summaries leaving it. Also inspect actual loops and estimated rows. Our illustrations explain relationships among operations, while this measured tree records execution. Do not infer an elapsed time or selected algorithm from the narration or from the SQL clause order.",
+    "Pay attention to work beneath the limit. Returning five rows does not mean PostgreSQL read only five orders. To identify the busiest customers in this report, it must derive the relevant activity measures. The sort may use a bounded method, and a different query with suitable ordering may permit early termination elsewhere. Inspect the chosen nodes and their measurements instead of assuming either behavior. Record the input order count, resulting group count, output limit, and any displayed sort method. These are useful explanations of the workload even when a tiny fixture's total execution time is too small for a reliable speed comparison.",
+    "Keep a small investigation notebook with the SQL, fixture variant, result grain, expected baseline numbers, and measured plan. Do not force one aggregate implementation or demand that every sort use the same method as this run. Later chapters investigate hash state, sorted aggregation, memory pressure, estimates, and index-provided ordering on larger controlled profiles. Today's experiment supplies the prerequisites: correct event populations, correct grouped measures, and deterministic output selection. A performance rewrite should preserve those contracts. Compare the complete results first; only then compare plans and work under the same data and conditions.",
+    "The six submissions cover paid-customer summaries, all customers including zero activity, completed-group restrictions, UTC date and status pairs, a limited deterministic activity ranking, and independent daily status measures. Each answer is checked on three fresh commerce variants. Reference answers remain collapsed until you have tried. Use the visible fixture to explain one group by listing its contributing orders, and use Analyze to inspect the physical work. Carry both forms of understanding forward: you should be able to account for every value in the report and every major operation that produced it. The next chapters extend that habit to writes, constraints, and deeper plan interpretation."
+  ]
+}
