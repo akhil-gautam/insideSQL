@@ -81,8 +81,8 @@ return()=>{stale=true;};},[id,open]);
 ```
 
 - [x] Run focused real-PG/resource/UI checks GREEN. For actual spill cancellation, admin configures only an owned ScanOrders test role with 64kB work_mem/temp allowance and disables competing index/parallel access; restricted sort raises 53400, then SELECT1 succeeds. Normal new connections still show 128MB. SET and set_config limit escalation both fail 42501.
-- [ ] Run full cargo test -p academy-core, npm test, all browser checks, production and native debug --no-bundle builds. Stop only owned previews; preserve installed bundle/media. Review focus conditions must have observed tests and honest scope.
-- [ ] Commit implementation and verified evidence; obtain one fresh read-only review of this range. Fix material findings RED→GREEN in one pass, rerun required checks, commit review/progress notes and keep full-course goal active.
+- [x] Run full cargo test -p academy-core, npm test, all browser checks, production and native debug --no-bundle builds. Stop only owned previews; preserve installed bundle/media. Review focus conditions must have observed tests and honest scope.
+- [x] Commit implementation and verified evidence; obtain one fresh read-only review of this range. Fix material findings RED→GREEN in one pass, rerun required checks, commit review/progress notes and keep full-course goal active.
 
 ## Ledger
 
