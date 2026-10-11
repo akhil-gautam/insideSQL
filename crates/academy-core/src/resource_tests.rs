@@ -1,6 +1,79 @@
 use super::*;
 
 #[tokio::test]
+async fn resource_reset_initializes_an_authorized_unvisited_exercise() {
+    let home = tempfile::tempdir().unwrap();
+    let runtime = std::env::var_os("ACADEMY_POSTGRES")
+        .map(std::path::PathBuf::from)
+        .unwrap_or_else(|| "/Applications/Postgres.app/Contents/Versions/18".into());
+    let mut academy = Academy::start(home.path(), &runtime).await.unwrap();
+    assert!(
+        academy.reset("02-01").await.is_err(),
+        "Publication and prior-pass gates remain enforced"
+    );
+    academy.chapters[1].published = true;
+    for exercise in &academy.chapters[0].exercises {
+        academy
+            .store
+            .attempt(&exercise.id, &exercise.solution_sql, &exercise.starter)
+            .unwrap();
+        academy
+            .store
+            .pass(&exercise.id, &exercise.revision)
+            .unwrap();
+    }
+    let catalog = academy
+        .cluster
+        .connect("postgres", "academy_admin")
+        .await
+        .unwrap();
+    let exists_sql = "SELECT EXISTS(SELECT FROM pg_database WHERE datname='lab_02_01') OR EXISTS(SELECT FROM pg_roles WHERE rolname='student_02_01')";
+    assert!(!catalog
+        .query_one(exists_sql, &[])
+        .await
+        .unwrap()
+        .get::<_, bool>(0));
+    academy
+        .save("02-01", "SELECT COUNT(*) FROM orders")
+        .unwrap();
+    academy.cluster.minimum_free_disk_bytes = u64::MAX;
+    assert!(academy
+        .reset("02-01")
+        .await
+        .unwrap_err()
+        .contains("Free up disk space"));
+    assert!(!catalog
+        .query_one(exists_sql, &[])
+        .await
+        .unwrap()
+        .get::<_, bool>(0));
+    academy.cluster.minimum_free_disk_bytes = crate::resources::MIN_FREE_DISK_BYTES;
+    academy
+        .reset("02-01")
+        .await
+        .expect("Reset must initialize a newly unlocked lab without Run or resources");
+    let learner = academy
+        .cluster
+        .connect("lab_02_01", "student_02_01")
+        .await
+        .unwrap();
+    assert!(
+        learner
+            .query_one("SELECT COUNT(*) FROM orders", &[])
+            .await
+            .unwrap()
+            .get::<_, i64>(0)
+            > 0
+    );
+    assert_eq!(
+        academy.store.script("02-01").unwrap().as_deref(),
+        Some("SELECT COUNT(*) FROM orders")
+    );
+    assert!(!catalog.query_one("SELECT EXISTS(SELECT FROM pg_database WHERE datname LIKE 'reset_%' OR datname LIKE 'retired_%')", &[]).await.unwrap().get::<_,bool>(0));
+    academy.shutdown().await.unwrap();
+}
+
+#[tokio::test]
 async fn resource_reset_setup_failure_preserves_the_previous_database() {
     let home = tempfile::tempdir().unwrap();
     let runtime = std::env::var_os("ACADEMY_POSTGRES")

@@ -121,7 +121,8 @@ impl Academy {
             .unwrap()
             .fixture)
     }
-    async fn ensure_lab(&self, id: &str) -> Result<()> {
+    // True means the baseline was created during this call.
+    async fn ensure_lab(&self, id: &str) -> Result<bool> {
         let _setup = self.lab_setup.lock().await;
         let (db, role) = self.names(id)?;
         let admin = self.cluster.connect("postgres", "academy_admin").await?;
@@ -134,11 +135,13 @@ impl Academy {
             .map_err(|e| e.to_string())?
             .get(0);
         if exists {
-            self.cluster.refresh_role(&role).await
+            self.cluster.refresh_role(&role).await?;
+            Ok(false)
         } else {
             self.cluster
                 .create_lab(&db, &role, self.fixture(id)?, 0)
-                .await
+                .await?;
+            Ok(true)
         }
     }
     pub fn course(&self) -> Value {
@@ -378,6 +381,9 @@ impl Academy {
         let _guard = self.lifecycle.write().await;
         let (db, role) = self.names(id)?;
         self.cluster.require_disk_space()?;
+        if self.ensure_lab(id).await? {
+            return self.store.clear_analysis(id);
+        }
         let retired = self
             .cluster
             .replace_lab(&db, &role, self.fixture(id)?, 0)

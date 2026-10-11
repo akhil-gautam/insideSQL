@@ -213,9 +213,20 @@ impl Cluster {
         let retired = format!("retired_{suffix}");
         self.create_database(&replacement, role, fixture, &setup)
             .await?;
+        self.promote_replacement(database, &replacement, &retired)
+            .await?;
+        Ok(retired)
+    }
+    async fn promote_replacement(
+        &self,
+        database: &str,
+        replacement: &str,
+        retired: &str,
+    ) -> Result<()> {
         let promoted: Result<()> = async {
+            self.require_disk_space()?;
             let admin = self.connect("postgres", "academy_admin").await?;
-            let names = vec![database.to_owned(), replacement.clone()];
+            let names = vec![database.to_owned(), replacement.to_owned()];
             admin.execute("SELECT pg_terminate_backend(pid,2000) FROM pg_stat_activity WHERE datname=ANY($1) AND pid<>pg_backend_pid()", &[&names]).await.map_err(|e|e.to_string())?;
             // Both catalog renames commit together; failed promotion keeps the old name.
             if let Err(error) = admin.batch_execute(&format!("BEGIN; ALTER DATABASE {database} RENAME TO {retired}; ALTER DATABASE {replacement} RENAME TO {database}; COMMIT;")).await {
@@ -230,7 +241,7 @@ impl Cluster {
             })?;
             return Err(error);
         }
-        Ok(retired)
+        Ok(())
     }
     fn password_for(&self, role: &str) -> String {
         if role == "academy_admin" {
@@ -306,6 +317,56 @@ impl Drop for Cluster {
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[tokio::test]
+    async fn resource_post_staging_rejection_preserves_old_lab_and_connection() {
+        let home = tempfile::tempdir().unwrap();
+        let runtime = std::env::var_os("ACADEMY_POSTGRES")
+            .map(PathBuf::from)
+            .unwrap_or_else(|| "/Applications/Postgres.app/Contents/Versions/18".into());
+        let mut cluster = Cluster::start(home.path(), &runtime).await.unwrap();
+        cluster
+            .create_lab("old_lab", "reset_student", Fixture::Orders, 0)
+            .await
+            .unwrap();
+        let admin = cluster.connect("old_lab", "academy_admin").await.unwrap();
+        admin
+            .batch_execute("UPDATE orders SET total=999.99 WHERE id=1")
+            .await
+            .unwrap();
+        let learner = cluster.connect("old_lab", "reset_student").await.unwrap();
+        let setup = Fixture::Orders.sql(0).unwrap();
+        cluster
+            .create_database("staged_lab", "reset_student", Fixture::Orders, &setup)
+            .await
+            .unwrap();
+        // Reject the exact post-staging boundary without filling or racing the filesystem.
+        cluster.minimum_free_disk_bytes = u64::MAX;
+        let error = cluster
+            .promote_replacement("old_lab", "staged_lab", "retired_lab")
+            .await
+            .expect_err("A replacement must not promote below the disk floor");
+        assert!(error.contains("Free up disk space"), "{error}");
+        assert_eq!(
+            learner
+                .query_one("SELECT total::text FROM orders WHERE id=1", &[])
+                .await
+                .unwrap()
+                .get::<_, String>(0),
+            "999.99",
+            "The original connection and data must survive"
+        );
+        let catalog = cluster.connect("postgres", "academy_admin").await.unwrap();
+        assert!(!catalog.query_one("SELECT EXISTS(SELECT FROM pg_database WHERE datname IN ('staged_lab','retired_lab'))", &[]).await.unwrap().get::<_,bool>(0));
+        assert!(catalog
+            .query_one(
+                "SELECT EXISTS(SELECT FROM pg_roles WHERE rolname='reset_student')",
+                &[]
+            )
+            .await
+            .unwrap()
+            .get::<_, bool>(0));
+        cluster.stop().unwrap();
+    }
     #[tokio::test]
     async fn resource_start_rejection_allocates_no_cluster_files() {
         let home = tempfile::tempdir().unwrap();
