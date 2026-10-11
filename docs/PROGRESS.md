@@ -28,7 +28,7 @@ Goal: implement the entire docs/PLAN.md and request Claude review after each com
 
 ## Remaining scope
 
-- Chapters 2–84, all later fixtures/lab mechanisms, production recovery/resource monitoring and cross-platform packaging remain unimplemented.
+- Chapters 2–84 remain undelivered. Chapter 2 has an unpublished draft; later fixtures/lab mechanisms, production recovery/resource monitoring and cross-platform packaging remain unimplemented.
 - This is a local development bundle; signing/notarization, redistribution notices and narration rights are release gates (docs/LICENSING.md).
 
 ## Decisions
@@ -36,7 +36,7 @@ Goal: implement the entire docs/PLAN.md and request Claude review after each com
 - Bundle the existing PostgreSQL 18.3 build for initial macOS testing; do not attach to its running server. Pinned binaries and source licenses must be carried in runtime packaging.
 - Preserve this ledger through continuation; check repository state and tests before resuming.
 - Keep the full 84-chapter scope; an outline or generated exercise placeholders never count as delivered chapters.
-- Design: quiet slate-blue application chrome, white lab surface, deep ink text, cobalt execution paths and violet planner stages. System sans for UI; monospace only for SQL and evidence. A large readable execution journey anchors the lesson, with compact questions beside the working editor.
+- Design: preserve slate-blue application chrome and white SQL lab surfaces. The journey now uses the scoped charcoal/copper mechanical world documented in DESIGN.md, with local Space Grotesk and IBM Plex Mono and detailed 3D internals. Compact questions remain beside the working editor.
 
 ## Cinematic engine revision — 2026-10-11
 
@@ -45,6 +45,6 @@ Goal: implement the entire docs/PLAN.md and request Claude review after each com
 - Sharp DOM annotations: 12px interactive and 20px exported video; every stage also has readable input/output, internal structure and explanation text outside the canvas. A narrow-screen overview uses a steeper diagonal assembly.
 - Production TypeScript/Vite build and four frontend tests pass. Six browser checks pass, including all six views, mobile/reduced motion/graphics loss, draft persistence, immediate cancellation, all six real SQL grades, lesson playback/captions, and stable pause using the shared replay player clock.
 - Eleven Rust tests pass against the absolute bundled PostgreSQL path. Cancellation is registered before lab preparation and retained across assessment fixtures; duplicate active run identifiers are rejected and registrations clear on all return paths.
-- Both chapter and cinematic repeated-frame hashes match. The complete cinematic chapter is exported: 1920×1080 H.264/AAC, 417.941 seconds, 191,911,787 bytes, synchronized audio/video durations. Browser playback, seeking and all110caption cues pass. The final native bundle includes this video; WebKit playback advances past56seconds and seeking reaches the planner at3:28. Native parser/planner inspection and pause controls also pass.
+- Both chapter and cinematic repeated-frame hashes match. The complete cinematic chapter is exported: 1920×1080 H.264/AAC, 417.941 seconds, 191,911,787 bytes, synchronized audio/video durations. Browser playback, seeking and all 110 caption cues pass. The final native bundle includes this video; WebKit playback advances past 56 seconds and seeking reaches the planner at 3:28. Native parser/planner inspection and pause controls also pass.
 - Fresh scoped finish review found annotation readability, mobile composition, mechanical depth and documentation gaps. All four changes were scored resolved by the fresh reviewer; disposition: ship for those four fixes, with no visible regressions. Video output and broader course surfaces were outside that review. PRODUCT.md, DESIGN.md and the design sidecar now describe the built scoped world.
 - Chapter 2 has an unpublished authored draft and six query exercises; access gates and draft persistence are implemented and tested. No additional chapter is counted as delivered until its media and full acceptance gates pass.
