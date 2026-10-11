@@ -13,5 +13,51 @@
       {"name":"order_items","columns":{"id":"integer · primary key","order_id":"integer · foreign key → orders.id","sku":"text · not null","quantity":"integer · positive","unit_price":"numeric(20,2) · nonnegative"}},
       {"name":"payments","columns":{"id":"integer · primary key","order_id":"integer · nullable foreign key → orders.id","status":"text · captured / failed / refunded","amount":"numeric(20,2) · nonnegative","occurred_at":"timestamptz · not null"}}
     ]
+  },
+  "commerce_writes": {
+    "title": "commerce writes",
+    "description": "Disposable commerce write lab: only orders permits INSERT, UPDATE and DELETE; other tables stay read-only and all constraints remain enforced. The visible fixture adds pending order 900000 for customer 109 with total 25 at 2026-01-11 UTC. Fresh assessments also vary its amount or omit it to exercise the insert branch of an upsert. Each exercise owns a separate lab; Reset restores its starting data.",
+    "tables": [
+      {
+        "name": "customers",
+        "columns": {
+          "id": "integer · primary key",
+          "name": "text · not null"
+        }
+      },
+      {
+        "name": "orders",
+        "columns": {
+          "id": "integer · primary key",
+          "customer_id": "integer · foreign key → customers.id",
+          "status": "text · checked status",
+          "total": "numeric(20,2) · nullable",
+          "ordered_at": "timestamptz · not null"
+        }
+      },
+      {
+        "name": "order_items",
+        "columns": {
+          "id": "integer · primary key",
+          "order_id": "integer · foreign key → orders.id",
+          "sku": "text · not null",
+          "quantity": "integer · positive",
+          "unit_price": "numeric(20,2) · nonnegative"
+        }
+      },
+      {
+        "name": "payments",
+        "columns": {
+          "id": "integer · primary key",
+          "order_id": "integer · nullable foreign key → orders.id",
+          "status": "text · captured / failed / refunded",
+          "amount": "numeric(20,2) · nonnegative",
+          "occurred_at": "timestamptz · not null"
+        }
+      }
+    ],
+    "writable_tables": [
+      "orders"
+    ]
   }
 }

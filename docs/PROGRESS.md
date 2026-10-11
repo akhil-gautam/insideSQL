@@ -28,7 +28,7 @@ Goal: implement the entire docs/PLAN.md and request Claude review after each com
 
 ## Remaining scope
 
-- Chapters 2–84 remain undelivered. Chapters 2–4 have unpublished authored drafts and tested SQL exercises; chapters 3–4 use the commerce fixture. Other fixture domains/profiles, later lab mechanisms, production recovery/resource monitoring and cross-platform packaging remain unimplemented.
+- Chapters 2–84 remain undelivered. Chapters 2–5 have unpublished authored drafts and tested SQL exercises; chapters 3–5 use commerce fixtures. Other fixture domains/profiles, advanced lab mechanisms, production recovery/resource monitoring and cross-platform packaging remain unimplemented.
 - This is a local development bundle; signing/notarization, redistribution notices and narration rights are release gates (docs/LICENSING.md).
 
 ## Decisions
@@ -74,3 +74,13 @@ Goal: implement the entire docs/PLAN.md and request Claude review after each com
 - Rust now discovers and embeds the contiguous authored catalog at build time. Empty catalogs, malformed/out-of-range names, gaps, directories masquerading as chapters and symlinks fail discovery. Course changes trigger rebuilds; existing runtime identifier, exact-six and publication validation remain in force. No first-three-chapter revision or fixture changed.
 - All chapter-four operations remain locked while unpublished, including Run/Explain/Analyze, Check, solution, save and reset. Verification: 20 core/PostgreSQL/catalog tests, nine frontend tests and six browser checks pass. Production and native --no-bundle builds pass; fresh local source review clean (docs/reviews/grouping-catalog.md).
 - No new video was rendered or published. Native UI recheck remains pending because the Mac was locked; the running app bundle was preserved. Specific Claude source-export approval remains pending, with no source exported. The full course goal remains active.
+
+## Writes and mutation labs — 2026-10-11
+
+- Chapter 5 is an unpublished authored draft: 1,475 transcript words in 14 sections, objectives, primary PostgreSQL 18 references and six complete INSERT/UPDATE/DELETE/upsert/writable-CTE exercises. It teaches returned rows versus stored effects, constraints, precise targets, conflict branches and statement/later-read visibility.
+- The closed commerce_writes fixture reuses unchanged commerce data and adds a conflict-key example. Orders counts are 311/390/471; order 900000 starts at 25/absent/45. Only orders receives INSERT/UPDATE/DELETE. Other tables, schema ownership, roles and other database connections remain restricted.
+- Mutation assessment now executes learner and reference SQL on separate fresh databases and compares both typed output and complete writable-table contents. Both cleanup calls are attempted before errors propagate. State comparison fails closed at its 10,000-row/8 MB bound; larger write profiles still need streaming comparison. Read-only grading is unchanged.
+- Run retains successful writes in that exercise only. Mutating Analyze executes inside a rolled-back transaction; Explain does not execute. Check leaves visible data alone, and Reset restores the baseline. The workbench explains these effects for write fixtures.
+- Independent imperative calculations verify all six returned relations and final states on every variant (18 fresh fixture/exercise combinations). SELECT spoofing, an extra hidden write with correct RETURNING, overbroad null updates, wrong upserts and base-table change summaries fail. Real errors preserve state for key/status/null constraints and restricted actions. Tests wait for a real post-update PgSleep before cancelling Run/Analyze/Check, then verify rollback and assessment cleanup.
+- Red evidence preceded each fix: missing chapter, falsely accepted SELECT insert spoof, persisted Analyze update and missing workbench notice. Final verification: 25 core/PostgreSQL/catalog tests, ten frontend tests and six browser checks pass (41 total). Production and native --no-bundle builds pass; fresh local source review clean (docs/reviews/mutation-labs.md).
+- Chapters 2–5 still lack delivered media and remain unpublished. Native GUI recheck remains pending because the Mac was locked; the running bundle was preserved. Specific Claude export approval remains pending and no source was exported. The full 84-chapter/504-exercise objective remains active.

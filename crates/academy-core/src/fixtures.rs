@@ -6,6 +6,7 @@ pub enum Fixture {
     #[default]
     Orders,
     Commerce,
+    CommerceWrites,
 }
 
 impl Fixture {
@@ -14,10 +15,21 @@ impl Fixture {
             return Err("Unknown assessment fixture variant".into());
         }
         let source = match self {
-            Self::Orders => include_str!("../../../course/fixtures/orders.sql"),
-            Self::Commerce => include_str!("../../../course/fixtures/commerce.sql"),
+            Self::Orders => include_str!("../../../course/fixtures/orders.sql").to_owned(),
+            Self::Commerce => include_str!("../../../course/fixtures/commerce.sql").to_owned(),
+            Self::CommerceWrites => format!(
+                "{}\n{}",
+                include_str!("../../../course/fixtures/commerce.sql"),
+                include_str!("../../../course/fixtures/commerce-writes.sql")
+            ),
         };
         Ok(source.replace("{{seed}}", &seed.to_string()))
+    }
+    pub fn writable_tables(self) -> &'static [&'static str] {
+        match self {
+            Self::CommerceWrites => &["orders"],
+            _ => &[],
+        }
     }
 }
 

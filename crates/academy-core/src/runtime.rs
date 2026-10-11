@@ -157,7 +157,7 @@ impl Cluster {
                 })?;
             return Err(error.to_string());
         }
-        if let Err(error) = self.seed(database, role, &setup).await {
+        if let Err(error) = self.seed(database, role, fixture, &setup).await {
             self.drop_lab(database, role).await.map_err(|cleanup| {
                 format!("Lab setup failed: {error}; cleanup failed: {cleanup}")
             })?;
@@ -180,9 +180,17 @@ impl Cluster {
         admin.batch_execute(&format!("ALTER ROLE {role} PASSWORD '{}' NOSUPERUSER NOCREATEDB NOCREATEROLE NOREPLICATION NOBYPASSRLS;",self.password_for(role))).await.map_err(|e|e.to_string())?;
         Ok(())
     }
-    async fn seed(&self, database: &str, role: &str, setup: &str) -> Result<()> {
+    async fn seed(&self, database: &str, role: &str, fixture: Fixture, setup: &str) -> Result<()> {
         let admin = self.connect(database, "academy_admin").await?;
         admin.batch_execute(&format!("REVOKE ALL ON DATABASE {database} FROM PUBLIC; GRANT CONNECT ON DATABASE {database} TO {role}; REVOKE CREATE ON SCHEMA public FROM PUBLIC; {setup} GRANT USAGE ON SCHEMA public TO {role}; GRANT SELECT ON ALL TABLES IN SCHEMA public TO {role};")).await.map_err(|e|e.to_string())?;
+        for table in fixture.writable_tables() {
+            admin
+                .batch_execute(&format!(
+                    "GRANT INSERT, UPDATE, DELETE ON TABLE public.{table} TO {role}"
+                ))
+                .await
+                .map_err(|e| e.to_string())?;
+        }
         Ok(())
     }
     pub async fn drop_lab(&self, database: &str, role: &str) -> Result<()> {

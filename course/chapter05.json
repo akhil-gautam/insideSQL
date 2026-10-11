@@ -1,0 +1,105 @@
+{
+  "id": "05",
+  "published": false,
+  "fixture": "commerce_writes",
+  "title": "Writes, constraints and visibility",
+  "subtitle": "Follow a change from its predicate to stored state, prove its constraints, and distinguish returned data from committed effects.",
+  "objectives": [
+    "Write precise INSERT, UPDATE, DELETE and conflict-handling statements in a disposable lab",
+    "Verify complete resulting state as well as RETURNING data",
+    "Preserve keys, relationships and untouched columns during a write",
+    "Use a writable CTE to summarize the rows actually changed",
+    "Observe committed changes on a later query and understand statement snapshot boundaries",
+    "Measure writes with Analyze while preserving the visible starting state"
+  ],
+  "references": [
+    "https://www.postgresql.org/docs/18/dml-insert.html",
+    "https://www.postgresql.org/docs/18/dml-update.html",
+    "https://www.postgresql.org/docs/18/dml-delete.html",
+    "https://www.postgresql.org/docs/18/dml-returning.html",
+    "https://www.postgresql.org/docs/18/sql-insert.html",
+    "https://www.postgresql.org/docs/18/ddl-constraints.html",
+    "https://www.postgresql.org/docs/18/queries-with.html",
+    "https://www.postgresql.org/docs/18/mvcc-intro.html",
+    "https://www.postgresql.org/docs/18/transaction-iso.html",
+    "https://www.postgresql.org/docs/18/using-explain.html"
+  ],
+  "exercises": [
+    {
+      "id": "05-01",
+      "title": "Insert a constrained order and return its stored fields",
+      "prompt": "Insert exactly one order: id 900001, customer_id 109, status pending, total 75.00 and ordered_at 2026-01-12 00:00:00+00. Return id, customer_id, status, total and ordered_at, in that column order. Preserve every existing row. The inserted row must exist after the statement; a SELECT of these values is not sufficient.",
+      "starter": "INSERT INTO orders (id, customer_id, status, total, ordered_at)\n-- provide the required row\nRETURNING id, customer_id, status, total, ordered_at;",
+      "ordered": false,
+      "revision": "05-01-v1-commerce-writes-v1",
+      "solution_sql": "INSERT INTO orders(id,customer_id,status,total,ordered_at) VALUES (900001,109,'pending',75,'2026-01-12 00:00:00+00') RETURNING id,customer_id,status,total,ordered_at",
+      "explanation": "The statement inserts a real row and returns its stored fields. The existing customer 109 satisfies the foreign key; the new identity and checked status satisfy the other constraints. Grading compares the complete orders table as well as the output, so imitating the row with SELECT cannot pass."
+    },
+    {
+      "id": "05-02",
+      "title": "Pay only qualifying pending orders",
+      "prompt": "Change status from pending to paid for every order whose current total is at least 100. Do not change any other field or any nonqualifying row. Null totals do not qualify. Return id, new status and unchanged total for every changed order, in that column order; row order does not matter.",
+      "starter": "UPDATE orders\nSET status = 'paid'\n-- restrict the target rows\nRETURNING id, status, total;",
+      "ordered": false,
+      "revision": "05-02-v1-commerce-writes-v1",
+      "solution_sql": "UPDATE orders SET status='paid' WHERE status='pending' AND total>=100 RETURNING id,status,total",
+      "explanation": "Both the current status and amount restriction define the target set. An unknown total does not satisfy the amount comparison. RETURNING reports the new status, while the state grader proves unrelated rows and fields were preserved. A query that merely projects paid beside the matching ids has the right appearance but no required effect."
+    },
+    {
+      "id": "05-03",
+      "title": "Apply an explicit policy to unknown pending totals",
+      "prompt": "Set total to numeric zero only on orders whose status is pending and whose total is null. Preserve status, identity, customer and time, and preserve all other rows. Return id and new total for each changed order, in that column order; row order does not matter.",
+      "starter": "UPDATE orders\nSET total = 0\n-- apply the policy only to unknown pending amounts\nRETURNING id, total;",
+      "ordered": false,
+      "revision": "05-03-v1-commerce-writes-v1",
+      "solution_sql": "UPDATE orders SET total=0 WHERE status='pending' AND total IS NULL RETURNING id,total",
+      "explanation": "This task explicitly requests changing unknown pending amounts to zero. It is a policy change to stored data, unlike COALESCE used only when reading a report. Use IS NULL for the target condition. Changing unknown paid or cancelled totals as well would violate the requested scope even if the displayed pending rows looked correct."
+    },
+    {
+      "id": "05-04",
+      "title": "Delete unreferenced cancelled orders",
+      "prompt": "Delete every cancelled order with no matching row in either order_items or payments. Any payment status counts as a reference. Keep cancelled orders with any child, and keep all noncancelled orders. Return the id of each deleted order; row order does not matter. Preserve the other tables and do not disable constraints.",
+      "starter": "DELETE FROM orders AS o\n-- retain every referenced or noncancelled order\nRETURNING o.id;",
+      "ordered": false,
+      "revision": "05-04-v1-commerce-writes-v1",
+      "solution_sql": "DELETE FROM orders o WHERE o.status='cancelled' AND NOT EXISTS(SELECT 1 FROM order_items i WHERE i.order_id=o.id) AND NOT EXISTS(SELECT 1 FROM payments p WHERE p.order_id=o.id) RETURNING o.id",
+      "explanation": "Both absence checks are necessary. A failed payment is still a referencing child. The nullable order_id on an unattached payment matches no order. Foreign keys remain active: blindly deleting referenced cancelled orders fails rather than being treated as a successful partial answer. RETURNING exposes the deleted identities, and complete state comparison checks the survivors."
+    },
+    {
+      "id": "05-05",
+      "title": "Handle both branches of an atomic upsert",
+      "prompt": "For order id 900000, atomically add 10 to its existing known total without changing its customer, status or ordered_at. If the id is absent, insert it with customer_id 109, status pending, total 10 and ordered_at 2026-01-11 00:00:00+00. Return id and resulting total. Use one statement that handles either starting case. The visible row starts at 25, while assessment variants change that amount or omit the row.",
+      "starter": "INSERT INTO orders (id, customer_id, status, total, ordered_at)\nVALUES (900000, 109, 'pending', 10, '2026-01-11 00:00:00+00')\n-- handle a conflicting id without overwriting unrelated fields\nRETURNING id, total;",
+      "ordered": false,
+      "revision": "05-05-v1-commerce-writes-v1",
+      "solution_sql": "INSERT INTO orders(id,customer_id,status,total,ordered_at) VALUES (900000,109,'pending',10,'2026-01-11 00:00:00+00') ON CONFLICT(id) DO UPDATE SET total=orders.total+EXCLUDED.total RETURNING id,total",
+      "explanation": "The primary-key conflict chooses the update branch when the row exists. EXCLUDED.total is the proposed increment, while orders.total is the stored amount. Assign only total on that branch. DO NOTHING misses the increment, and assigning total=10 overwrites rather than adds. The missing-row assessment proves the insert branch is real."
+    },
+    {
+      "id": "05-06",
+      "title": "Summarize the rows changed by this statement",
+      "prompt": "In one statement, change every pending order whose ordered_at is before 2026-02-05 00:00:00+00 to cancelled. Preserve all other fields and all other rows. Return exactly one row containing the number of orders changed and the sum of their known totals, in that column order. An empty or all-null changed set has numeric sum zero. Summarize this statement’s changes, not all cancelled orders already in the table.",
+      "starter": "WITH changed AS (\n  UPDATE orders\n  SET status = 'cancelled'\n  -- restrict the change and expose its amounts\n)\n-- summarize only changed rows\nSELECT 1;",
+      "ordered": false,
+      "revision": "05-06-v1-commerce-writes-v1",
+      "solution_sql": "WITH changed AS (UPDATE orders SET status='cancelled' WHERE status='pending' AND ordered_at<'2026-02-05 00:00:00+00' RETURNING total) SELECT COUNT(*),COALESCE(SUM(total),0) FROM changed",
+      "explanation": "The writable CTE returns exactly the rows affected by its UPDATE. Aggregate that returned relation to describe this command. Reading the base table for cancelled orders is a different question and follows the statement snapshot; it does not substitute for the changed relation. The state grader also verifies that the update actually happened and touched only the requested population."
+    }
+  ],
+  "transcript": [
+    "A write has two answers: what the command returns and what the database now stores. A query can display a convincing new order without inserting one. An update can return the expected status while also changing unrelated amounts. This chapter treats both effects as part of the contract. We use an isolated commerce write lab, with the same customers, orders, lines and payments as before and one additional conflict-key example. Only orders permits inserts, updates and deletes. The other tables remain readable, their references remain enforced, and you do not own the schema. Each question has its own disposable database, so experiments in one question do not change another question's starting data.",
+    "Read the workbench notice before experimenting. Run applies a successful write to this exercise's visible lab. A later Run reads that committed result using a new connection. Check starts fresh assessment databases and compares them with separate fresh reference databases; your visible edits do not become its input. Reset restores the exercise's starting fixture. Analyze executes a write to collect measurements inside a transaction that the app rolls back. These controls serve different purposes. Save your SQL as you work, inspect the visible state after Run, and reset when an earlier experiment would make the next insert collide with its own previous result.",
+    "The first task inserts a pending order with a new identity, a known amount, and an explicit UTC timestamp. Customer one hundred and nine already exists, so that relationship is valid. Specify the target columns rather than relying on a memorized physical column order. Return the stored identity, customer, status, amount and time. Then issue a separate read for that identity. The returned row and the later stored row should agree. In assessment, every other order must remain unchanged. A SELECT of literal values can reproduce the displayed row, but it cannot satisfy the insert's state requirement. This is why output comparison alone is insufficient for mutation exercises.",
+    "Deliberately try an invalid customer reference in the scratch lab. Try an already-used order identity, an unrecognized status, and a null customer key as separate statements. Inspect each error and verify the table afterward. The declared constraints reject those writes; an error is not a successful partial insertion. Reset before returning to the required answer. These are real engine checks, rather than a frontend validation pretending to enforce relationships. The fixture's nullable total is a separate choice: an unknown amount is allowed, while the customer identity is required. Do not assume a checked column necessarily forbids null; inspect the actual declaration that controls each field.",
+    "For the second task, name the target population before writing SET. It consists of currently pending orders with known totals of at least one hundred. Change only status to paid. Order four is a convenient baseline example; customer and timestamp stay exactly as they were. Orders that are already paid, cancelled or refunded are outside the target even when their amounts are large. Generated rows make that distinction observable across different populations. List the target identities and original fields first, then inspect the identities and new fields returned by the write. The final table comparison catches an extra field assignment or an overbroad target condition.",
+    "The third task changes unknown pending amounts to zero under an explicit exercise policy. This differs from displaying zero in a grouped report: the stored fact is being changed. Keep the pending restriction and the null test together. Order nine gives you a hand-checkable example. Unknown amounts in other statuses must survive untouched. A blanket replacement of every null amount can produce the correct-looking pending output and still violate the state contract elsewhere. Record that difference in your investigation notes. An optimizer must preserve the required data effects just as carefully as the rows returned by a read; reducing work does not justify broadening a write's meaning.",
+    "Deletion has a relationship cost. The fourth task removes cancelled orders only when neither child table references them. A failed payment still references its order, even though it contributes no captured-payment amount to earlier reports. An unattached payment with a null order id references no known order. Inspect those cases separately. Baseline orders six and ten have no children and can be removed; generated cancelled orders provide both protected and removable examples. Do not try to disable constraints or delete child records to make a broader command succeed. The task requests preserving those tables and preserving every referenced order.",
+    "Use the deleted identities to explain the command's effect, then read the survivors. A result with no matching rows can be a valid write outcome; it is not a syntax error. Conversely, a constraint error means the statement failed. The assessment compares the entire writable table, including unaffected identities, so returning only the two memorable baseline ids is not enough for the generated workload. Do not assume RETURNING establishes a particular row order for a multirow mutation. These exercises compare returned rows as multisets while preserving values and duplicates. The mutation's target and the resulting state matter more than the order in which changed identities happen to be reported.",
+    "The upsert task has two starting cases. In the visible lab, order nine hundred thousand exists with total twenty-five; add ten and preserve its other fields. One fresh variant omits the row, so the same statement must instead insert the specified pending order with total ten. Another starts at a different amount to catch a hardcoded thirty-five. Use the primary key as the conflict target. In the update branch, distinguish the stored amount from the proposed increment. Assigning the proposed amount directly would overwrite the total; ignoring the conflict would skip the increment. Inspect the resulting row and its untouched customer, status and timestamp after each experiment.",
+    "The last task summarizes a change rather than reading a status report. Cancel pending orders before an explicit UTC cutoff and return their count and known-amount sum. A writable common table expression exposes the affected amounts through its returned relation. Aggregate that relation. Some orders were already cancelled before this command, and they do not belong in its changed count. A base-table read inside the same statement follows its statement snapshot; it is not a substitute for the returned changed rows. This boundary is a useful introduction to visibility. Later concurrency chapters will investigate multiple sessions and isolation levels with controlled barriers instead of relying on racing browser clicks.",
+    "Run the completed change and inspect it with a later query. In this lab, each ordinary successful Run completes its statement and commits before returning. The next connection can observe the new status. That does not mean PostgreSQL universally replaces a row in place or that every concurrent reader instantly changes its view. The engine uses row versions and visibility rules. The statement snapshot and transaction isolation determine which versions a read may see. For now, distinguish the command's own returned relation, a later committed read, and another session's snapshot. Keep those as separate observations rather than inferring all three from one RETURNING result.",
+    "Analyze the constrained update after resetting its visible lab. The returned tree records real execution, including modification and any displayed constraint-trigger work, while the app rolls back the transaction afterward. Verify that the starting table values remain when you read again. Explain without Analyze provides estimates and does not execute the update. Run executes and retains the successful change. The labels help you choose the observation you want. A rollback here is useful for inspecting these authored table writes; it is not a claim that arbitrary database side effects are always reversible. Assessments still use fresh disposable copies rather than reusing a supposedly restored grading database.",
+    "When a query fails or is cancelled, inspect the next usable connection and its table state. The workbench keeps your script, so fixing a predicate does not require retyping the statement. Reset is available when successful experiments have changed the starting conditions. You cannot change customers, lines or payments, create tables, acquire an administrator role, or attach another exercise database. Those boundaries keep the lab focused on the authorized orders workload. Constraints and privilege errors remain visible as real PostgreSQL errors. They are part of understanding the execution path, rather than obstacles the app silently bypasses on the learner's behalf.",
+    "The six submissions now prove an inserted order, a precise status update, a stored null-policy change, deletion with protected relationships, both conflict-handling branches, and a summary of the rows changed by one command. Each check runs on fresh variants and compares both typed output and complete writable-table contents against an independent fresh reference execution. The authored answers are also verified with calculations over starting rows. Carry that habit forward: describe the target identities, expected returned relation, surviving fields and visibility boundary before proposing a faster write. The next lesson ties these observations to a more systematic reading of Explain and Analyze."
+  ]
+}

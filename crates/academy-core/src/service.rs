@@ -211,14 +211,29 @@ impl Academy {
         let (db, role) = self.names(&exercise.id)?;
         self.ensure_lab(&exercise.id).await?;
         let client = self.cluster.connect(&db, &role).await?;
-        execute_controlled(
+        let rollback =
+            request.mode == "analyze" && !self.fixture(&exercise.id)?.writable_tables().is_empty();
+        if rollback {
+            client
+                .batch_execute("BEGIN")
+                .await
+                .map_err(|e| e.to_string())?;
+        }
+        let result = execute_controlled(
             &client,
             &request.sql,
             &request.mode,
             1000,
             &mut active.cancelled,
         )
-        .await
+        .await;
+        if rollback {
+            client
+                .batch_execute("ROLLBACK")
+                .await
+                .map_err(|e| e.to_string())?;
+        }
+        result
     }
     pub async fn check(&self, request: RunRequest) -> Result<CheckResult> {
         let mut active = self.register(&request.run_id)?;
@@ -230,6 +245,8 @@ impl Academy {
         if !self.store.attempt(&e.id, &request.sql, &e.starter)? {
             return Err("Write a query before checking".into());
         }
+        let fixture = self.fixture(&e.id)?;
+        let mutation = !fixture.writable_tables().is_empty();
         let mut passed = 0;
         for seed in 0..3 {
             if *active.cancelled.borrow() {
@@ -238,10 +255,15 @@ impl Academy {
             let suffix = uuid::Uuid::new_v4().simple().to_string();
             let db = format!("grade_{suffix}");
             let role = format!("learner_{suffix}");
-            self.cluster
-                .create_lab(&db, &role, self.fixture(&e.id)?, seed)
-                .await?;
+            let reference_db = format!("reference_{suffix}");
+            let reference_role = format!("reference_student_{suffix}");
+            self.cluster.create_lab(&db, &role, fixture, seed).await?;
+            let mut reference_created = false;
             let checked: Result<bool> = async {
+                if mutation {
+                    self.cluster.create_lab(&reference_db, &reference_role, fixture, seed).await?;
+                    reference_created = true;
+                }
                 let learner = self.cluster.connect(&db, &role).await?;
                 let actual = execute_controlled(
                     &learner,
@@ -254,16 +276,39 @@ impl Academy {
                 if actual.error.is_some() || actual.truncated {
                     return Ok(false);
                 }
-                let admin = self.cluster.connect(&db, "academy_admin").await?;
+                let expected_db = if mutation { &reference_db } else { &db };
+                let admin = self.cluster.connect(expected_db, "academy_admin").await?;
                 let expected = execute(&admin, &e.solution_sql, "run", 10_000).await?;
                 if expected.error.is_some() || expected.truncated {
                     return Err("Reference assessment failed; progress was not changed".into());
                 }
-                Ok(actual.columns.len() == expected.columns.len()
-                    && equivalent(&normalized(&actual), &normalized(&expected), e.ordered))
+                if actual.columns.len() != expected.columns.len()
+                    || !equivalent(&normalized(&actual), &normalized(&expected), e.ordered) { return Ok(false); }
+                if mutation {
+                    let actual_admin = self.cluster.connect(&db, "academy_admin").await?;
+                    // shortcut: full state is capped at 10,000 rows; stream comparisons when larger write fixtures arrive.
+                    for table in fixture.writable_tables() {
+                        let sql = format!("SELECT * FROM public.{table}");
+                        let state = execute(&actual_admin, &sql, "run", 10_000).await?;
+                        let reference = execute(&admin, &sql, "run", 10_000).await?;
+                        if reference.error.is_some() || reference.truncated {
+                            return Err("Reference mutation state could not be verified; progress was not changed".into());
+                        }
+                        if state.error.is_some() || state.truncated
+                            || !equivalent(&normalized(&state), &normalized(&reference), false) { return Ok(false); }
+                    }
+                }
+                Ok(true)
             }
             .await;
-            self.cluster.drop_lab(&db, &role).await?;
+            let reference_cleanup = if reference_created {
+                self.cluster.drop_lab(&reference_db, &reference_role).await
+            } else {
+                Ok(())
+            };
+            let learner_cleanup = self.cluster.drop_lab(&db, &role).await;
+            reference_cleanup?;
+            learner_cleanup?;
             if checked? && !*active.cancelled.borrow() {
                 passed += 1;
             } else {
@@ -280,7 +325,7 @@ impl Academy {
             message: if passed == 3 {
                 "Correct across all three fixture variants.".into()
             } else {
-                format!("Not yet correct. {passed} of 3 fixture variants passed. Check filters, duplicates, nulls and ordering.")
+                format!("Not yet correct. {passed} of 3 fixture variants passed. Check filters, duplicates, nulls, ordering{}.", if mutation { " and resulting table state" } else { "" })
             },
         })
     }
@@ -444,6 +489,10 @@ async fn execute(client: &Client, sql: &str, mode: &str, limit: usize) -> Result
 #[cfg(test)]
 #[path = "grouping_tests.rs"]
 mod grouping_tests;
+
+#[cfg(test)]
+#[path = "mutation_tests.rs"]
+mod mutation_tests;
 
 #[cfg(test)]
 mod tests {

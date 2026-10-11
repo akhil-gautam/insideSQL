@@ -2,7 +2,7 @@
 
 A native Tauri/Rust learning workbench with real, disposable PostgreSQL labs, Theatre.js mechanism scenes and Remotion chapter videos.
 
-The complete approved scope is [docs/PLAN.md](docs/PLAN.md). Verified delivery status is [docs/PROGRESS.md](docs/PROGRESS.md). The full course is **not complete**: chapter 1 is delivered, chapters 2–4 have unpublished authored drafts and tested queries, and later chapters remain to author.
+The complete approved scope is [docs/PLAN.md](docs/PLAN.md). Verified delivery status is [docs/PROGRESS.md](docs/PROGRESS.md). The full course is **not complete**: chapter 1 is delivered, chapters 2–5 have unpublished authored drafts and tested SQL exercises, and later chapters remain to author.
 
 ## Local macOS development
 
@@ -51,6 +51,9 @@ The video renderer verifies repeated frame hashes before producing the complete 
 - Grading preserves duplicates, nulls, numeric values and specified row order.
 - Learner connections have no administrator or filesystem privileges.
 - Explain estimates and Analyze execution evidence are labeled separately.
+- Write exercises permit DML only on their authored disposable tables. Run retains successful changes; Analyze measures inside a rolled-back transaction; Check uses separate fresh learner/reference databases and verifies both returned rows and resulting state. Reset restores starting data.
+
+Current mutation-state comparison is complete within a 10,000-row/8 MB bound and fails rather than accepting truncated state. Larger write profiles still require streaming comparison before delivery.
 
 ## Authored catalog
 

@@ -5,3 +5,4 @@
 .journey-scene ::selection{background:#ffc59e;color:#201e1d}.journey-scene button:focus-visible,.stage-buttons button:focus-visible{outline:2px solid #ffc59e;outline-offset:3px}
 
 .engine-annotations{position:absolute;inset:0;pointer-events:none;overflow:hidden}.engine-annotation{position:absolute;transform:translate(-50%,-50%);font:12px/1.4 'IBM Plex Mono',monospace;color:#fff0df;background:#201e1deb;padding:3px 6px;border-bottom:1px solid #ffc59e;white-space:nowrap;max-width:calc(100% - 16px)}.journey-video .engine-annotation{font-size:20px;padding:5px 10px}
+.lab-notice{padding:12px 18px;background:#f5f8fd;color:var(--ink);font-size:12px;line-height:1.7}
