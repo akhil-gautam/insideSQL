@@ -161,3 +161,63 @@ test('100k scan fixture exposes payload metadata and column completion',async()=
  const completions=await Promise.all(sources.map(source=>source(new CompletionContext(view.state,query.length,true))));
  expect(completions.flatMap(result=>result?.options.map(option=>option.label)??[])).toContain('payload');
 });
+
+for(const unavailable of [false,true])test(`failed Reset clears former measured evidence when progress ${unavailable?'cannot be inspected':'reports a replaced lab'}`,async()=>{
+ // jsdom has no ResizeObserver; keep the real plan component while omitting layout callbacks.
+ vi.stubGlobal('ResizeObserver',class{observe(){}unobserve(){}disconnect(){}});
+ const saved=start({measurement:true});
+ fireEvent.click(await screen.findByRole('button',{name:/Chapter 2:/}));
+ const sql='SELECT 1 AS measured';
+ fireEvent.input(screen.getByRole('textbox',{name:'SQL query'}),{target:{textContent:sql}});
+ await waitFor(()=>expect(saved['02-01'].sql).toBe(sql));
+ saved['02-01'].passed=true;
+ let failProgress=false;
+ const normal=vi.mocked(call).getMockImplementation()!;
+ vi.mocked(call).mockImplementation(async(command,input)=>{
+  if(command==='run'){
+   saved['02-01'].analyzed=true;
+   return {columns:[],column_types:[],rows:[],plan:[{Plan:{'Node Type':'Result','Plan Rows':1,'Plan Width':4,'Startup Cost':0,'Total Cost':0.01,'Actual Rows':1,'Actual Loops':1}}],error:null,truncated:false,elapsed_ms:1};
+  }
+  if(command==='reset'){
+   saved['02-01'].analyzed=false;failProgress=unavailable;
+   throw new Error('Reset invalidation failed');
+  }
+  if(command==='progress'&&failProgress)throw new Error('Progress inspection unavailable');
+  return normal(command,input);
+ });
+ fireEvent.click(screen.getByRole('button',{name:'Analyze'}));
+ expect(await screen.findByText('Current SQL has measured execution evidence.')).toBeTruthy();
+ expect(screen.getByText('Measured PostgreSQL execution')).toBeTruthy();
+ await waitFor(()=>expect(screen.getByRole('button',{name:'Analyze'}).hasAttribute('disabled')).toBe(false));
+ fireEvent.click(screen.getByRole('button',{name:'Reset lab'}));
+ await waitFor(()=>expect(screen.getByRole('button',{name:'Run'}).hasAttribute('disabled')).toBe(false));
+ expect(screen.queryByText('Current SQL has measured execution evidence.')).toBeNull();
+ expect(screen.queryByText('Measured PostgreSQL execution')).toBeNull();
+ expect(screen.getByRole('alert').textContent).toContain('Reset invalidation failed');
+ if(unavailable)expect(screen.getByRole('alert').textContent).toContain('Progress inspection unavailable');
+ expect(screen.getByRole('textbox',{name:'SQL query'}).textContent).toBe(sql);
+ expect(screen.getByRole('button',{name:/Chapter 2:/}).textContent).toContain('1/6 exercises passed');
+});
+
+test('a rejected Reset retains measured evidence when current inspection confirms the original lab',async()=>{
+ vi.stubGlobal('ResizeObserver',class{observe(){}unobserve(){}disconnect(){}});
+ const saved=start({measurement:true});
+ fireEvent.click(await screen.findByRole('button',{name:/Chapter 2:/}));
+ const normal=vi.mocked(call).getMockImplementation()!;
+ vi.mocked(call).mockImplementation(async(command,input)=>{
+  if(command==='run'){
+   saved['02-01'].analyzed=true;
+   return {columns:[],column_types:[],rows:[],plan:[{Plan:{'Node Type':'Result','Plan Rows':1,'Plan Width':4,'Startup Cost':0,'Total Cost':0.01,'Actual Rows':1,'Actual Loops':1}}],error:null,truncated:false,elapsed_ms:1};
+  }
+  if(command==='reset')throw new Error('Free up disk space');
+  return normal(command,input);
+ });
+ fireEvent.click(screen.getByRole('button',{name:'Analyze'}));
+ expect(await screen.findByText('Current SQL has measured execution evidence.')).toBeTruthy();
+ await waitFor(()=>expect(screen.getByRole('button',{name:'Analyze'}).hasAttribute('disabled')).toBe(false));
+ fireEvent.click(screen.getByRole('button',{name:'Reset lab'}));
+ await waitFor(()=>expect(screen.getByRole('button',{name:'Run'}).hasAttribute('disabled')).toBe(false));
+ expect(screen.getByRole('alert').textContent).toContain('Free up disk space');
+ expect(screen.getByText('Current SQL has measured execution evidence.')).toBeTruthy();
+ expect(screen.getByText('Measured PostgreSQL execution')).toBeTruthy();
+});
