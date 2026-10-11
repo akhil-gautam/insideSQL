@@ -70,7 +70,7 @@ FROM orders GROUP BY status ORDER BY status;
 
 - [x] Run the focused tests again. Expected: six exact typed reports match independent raw-row calculations in all three variants, estimates omit actual fields, measured root output matches report grain, references pass Analyze+Check, ten measured wrong reports fail, Reset restores a changed owned baseline and clears proof, and assessment copies are absent after checks.
 - [x] In owned test sessions, disable index/bitmap/index-only and parallel paths. Compare the customer conditional report under hash aggregation at 16MB, sorted aggregation at 64kB and at 16MB. Expected: identical reports; observed Hashed/Sorted strategies, Disk/Memory sort-space evidence, and positive temp blocks for the low-memory sort. Restore settings by closing these owned connections; no production defaults change.
-- [ ] Run full `cargo test -p academy-core`, `npm test`, `npm run test:e2e`, `npm run build` and `npm run tauri -- build --debug --no-bundle`. Expected: all pass; owned preview processes stop; installed bundle remains intact.
+- [x] Run full `cargo test -p academy-core`, `npm test`, `npm run test:e2e`, `npm run build` and `npm run tauri -- build --debug --no-bundle`. Expected: all pass; owned preview processes stop; installed bundle remains intact.
 - [ ] Commit the implementation; obtain one fresh read-only reviewer of the task range; fix material findings RED→GREEN and rerun required checks. Commit truthful progress/review notes and keep full-course branch/goal active.
 
 ## Ledger
