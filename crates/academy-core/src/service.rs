@@ -421,14 +421,10 @@ impl Academy {
         if self.ensure_lab(id).await? {
             return self.store.clear_analysis(id);
         }
-        let retired = self
-            .cluster
+        self.cluster
             .replace_lab(&db, &role, self.fixture(id)?, 0)
             .await?;
-        let cleared = self.store.clear_analysis(id);
-        let cleaned = self.cluster.drop_database(&retired).await;
-        cleared?;
-        cleaned
+        self.store.clear_analysis(id)
     }
     pub async fn shutdown(&self) -> Result<()> {
         let _guard = self.lifecycle.write().await;
@@ -614,6 +610,10 @@ mod resource_tests;
 #[cfg(test)]
 #[path = "analysis_identity_tests.rs"]
 mod analysis_identity_tests;
+
+#[cfg(test)]
+#[path = "reset_recovery_tests.rs"]
+mod reset_recovery_tests;
 
 #[cfg(test)]
 mod tests {

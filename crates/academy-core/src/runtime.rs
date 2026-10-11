@@ -10,6 +10,7 @@ use std::{
     time::Duration,
 };
 use tokio_postgres::{Client, Config, NoTls};
+mod reset;
 pub struct Cluster {
     pub root: PathBuf,
     pub port: u16,
@@ -135,6 +136,7 @@ impl Cluster {
                     .await
                     .map_err(|e| e.to_string())?
                     .get(0);
+                cluster.initialize_reset_recovery().await?;
                 return Ok(cluster);
             }
             tokio::time::sleep(Duration::from_millis(50)).await;
@@ -204,7 +206,10 @@ impl Cluster {
         self.require_disk_space()?;
         let admin = self.connect("postgres", "academy_admin").await?;
         admin.batch_execute(&format!("CREATE ROLE {role} LOGIN PASSWORD '{}' NOSUPERUSER NOCREATEDB NOCREATEROLE NOREPLICATION NOBYPASSRLS;",self.password_for(role))).await.map_err(|e|e.to_string())?;
-        if let Err(error) = self.create_database(database, role, fixture, &setup).await {
+        if let Err(error) = self
+            .create_database(database, role, fixture, &setup, None)
+            .await
+        {
             admin
                 .batch_execute(&format!("DROP ROLE {role};"))
                 .await
@@ -221,59 +226,20 @@ impl Cluster {
         role: &str,
         fixture: Fixture,
         setup: &str,
+        oid: Option<u32>,
     ) -> Result<()> {
         self.require_disk_space()?;
         let admin = self.connect("postgres", "academy_admin").await?;
+        let oid_clause = oid
+            .map(|oid| format!(" WITH OID={oid}"))
+            .unwrap_or_default();
         admin
-            .batch_execute(&format!("CREATE DATABASE {database};"))
+            .batch_execute(&format!("CREATE DATABASE {database}{oid_clause};"))
             .await
             .map_err(|e| e.to_string())?;
         if let Err(error) = self.seed(database, role, fixture, setup).await {
             self.drop_database(database).await.map_err(|cleanup| {
                 format!("Lab setup failed: {error}; cleanup failed: {cleanup}")
-            })?;
-            return Err(error);
-        }
-        Ok(())
-    }
-    pub(crate) async fn replace_lab(
-        &self,
-        database: &str,
-        role: &str,
-        fixture: Fixture,
-        seed: u32,
-    ) -> Result<String> {
-        let setup = fixture.sql(seed)?;
-        let suffix = uuid::Uuid::new_v4().simple().to_string();
-        let replacement = format!("reset_{suffix}");
-        let retired = format!("retired_{suffix}");
-        self.create_database(&replacement, role, fixture, &setup)
-            .await?;
-        self.promote_replacement(database, &replacement, &retired)
-            .await?;
-        Ok(retired)
-    }
-    async fn promote_replacement(
-        &self,
-        database: &str,
-        replacement: &str,
-        retired: &str,
-    ) -> Result<()> {
-        let promoted: Result<()> = async {
-            self.require_disk_space()?;
-            let admin = self.connect("postgres", "academy_admin").await?;
-            let names = vec![database.to_owned(), replacement.to_owned()];
-            admin.execute("SELECT pg_terminate_backend(pid,2000) FROM pg_stat_activity WHERE datname=ANY($1) AND pid<>pg_backend_pid()", &[&names]).await.map_err(|e|e.to_string())?;
-            // Both catalog renames commit together; failed promotion keeps the old name.
-            if let Err(error) = admin.batch_execute(&format!("BEGIN; ALTER DATABASE {database} RENAME TO {retired}; ALTER DATABASE {replacement} RENAME TO {database}; COMMIT;")).await {
-                admin.batch_execute("ROLLBACK").await.map_err(|rollback|format!("Reset promotion failed: {error}; rollback failed: {rollback}"))?;
-                return Err(error.to_string());
-            }
-            Ok(())
-        }.await;
-        if let Err(error) = promoted {
-            self.drop_database(&replacement).await.map_err(|cleanup| {
-                format!("Reset promotion failed: {error}; staging cleanup failed: {cleanup}")
             })?;
             return Err(error);
         }
@@ -361,27 +327,38 @@ mod tests {
             .unwrap_or_else(|| "/Applications/Postgres.app/Contents/Versions/18".into());
         let mut cluster = Cluster::start(home.path(), &runtime).await.unwrap();
         cluster
-            .create_lab("old_lab", "reset_student", Fixture::Orders, 0)
+            .create_lab("lab_01_01", "student_01_01", Fixture::Orders, 0)
             .await
             .unwrap();
-        let admin = cluster.connect("old_lab", "academy_admin").await.unwrap();
+        let admin = cluster.connect("lab_01_01", "academy_admin").await.unwrap();
         admin
             .batch_execute("UPDATE orders SET total=999.99 WHERE id=1")
             .await
             .unwrap();
-        let learner = cluster.connect("old_lab", "reset_student").await.unwrap();
+        let learner = cluster.connect("lab_01_01", "student_01_01").await.unwrap();
         let setup = Fixture::Orders.sql(0).unwrap();
+        let reset = cluster
+            .reserve_reset("lab_01_01", "student_01_01")
+            .await
+            .unwrap();
         cluster
-            .create_database("staged_lab", "reset_student", Fixture::Orders, &setup)
+            .create_database(
+                &reset.replacement,
+                "student_01_01",
+                Fixture::Orders,
+                &setup,
+                Some(reset.new_oid),
+            )
             .await
             .unwrap();
         // Reject the exact post-staging boundary without filling or racing the filesystem.
         cluster.minimum_free_disk_bytes = u64::MAX;
         let error = cluster
-            .promote_replacement("old_lab", "staged_lab", "retired_lab")
+            .promote_reset(&reset)
             .await
             .expect_err("A replacement must not promote below the disk floor");
         assert!(error.contains("Free up disk space"), "{error}");
+        cluster.recover_resets().await.unwrap();
         assert_eq!(
             learner
                 .query_one("SELECT total::text FROM orders WHERE id=1", &[])
@@ -392,10 +369,10 @@ mod tests {
             "The original connection and data must survive"
         );
         let catalog = cluster.connect("postgres", "academy_admin").await.unwrap();
-        assert!(!catalog.query_one("SELECT EXISTS(SELECT FROM pg_database WHERE datname IN ('staged_lab','retired_lab'))", &[]).await.unwrap().get::<_,bool>(0));
+        assert!(!catalog.query_one("SELECT EXISTS(SELECT FROM pg_database WHERE datname LIKE 'reset_%' OR datname LIKE 'retired_%')", &[]).await.unwrap().get::<_,bool>(0));
         assert!(catalog
             .query_one(
-                "SELECT EXISTS(SELECT FROM pg_roles WHERE rolname='reset_student')",
+                "SELECT EXISTS(SELECT FROM pg_roles WHERE rolname='student_01_01')",
                 &[]
             )
             .await
