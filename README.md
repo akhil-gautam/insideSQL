@@ -6,22 +6,22 @@ Writing a query is only the beginning. The interesting part is what PostgreSQL d
 
 insideSQL is a desktop course for people who already write basic SQL and want to get good at that part. Follow a statement through the engine, inspect a real execution plan, then write queries against a local PostgreSQL lab until they hold up across different datasets.
 
-![The illustrated database engine, with six detailed mechanical layers](docs/images/database-engine.png)
+![insideSQL: the query journey alongside a complete SQL practice workspace](docs/images/workbench.png)
 
-The machine is an illustration of the query's journey. The execution plans and query results come from real PostgreSQL. Keeping those two things clearly labelled matters.
+The diagrams illustrate the query's journey: parse trees, catalog lookups, competing scan paths, buffer frames and heap pages. The execution plans and query results come from real PostgreSQL. Keeping those two things clearly labelled matters.
 
 ## What a chapter feels like
 
-Watch a narrated lesson with captions. Pause, replay, or step inside the parser, analyzer, rewriter, planner and executor. Then move to the SQL editor beside it.
+Watch a narrated lesson with captions. Pause, replay, or step inside the parser, analyzer, rewriter, planner and executor. The question, SQL editor, Run, Analyze and Check actions share one practice surface beside it. On a narrow screen, practice comes first.
 
 Each chapter has six questions. You write the SQL yourself; the grader checks fresh fixture variants, including cases that the visible dataset might not reveal. A correct answer has to preserve the requested rows, duplicates, nulls and ordering. Write exercises also check the resulting database state.
 
 Solutions start collapsed and locked. Your first nonempty, learner-written Run or Check unlocks the explanation—even a syntax error counts as an attempt. Passing all six questions completes a chapter; the next one becomes available once its lesson is published. Retries are unlimited, and scripts and progress stay on your machine.
 
 <details>
-<summary>See the workbench</summary>
+<summary>Look inside the executor</summary>
 
-![The local workbench: chapter video, SQL editor, exercise panel and PostgreSQL plan inspector](docs/images/workbench.png)
+![Buffer frames, visible tuples and layered heap pages in the executor illustration](docs/images/database-engine.png)
 
 </details>
 
@@ -39,7 +39,7 @@ This is an early development build. The full course is still being made.
 
 The app already runs disposable PostgreSQL labs, saves drafts, cancels queries, grades across fresh variants, and separates `EXPLAIN` estimates from `EXPLAIN ANALYZE` measurements. The plan inspector has graph, tree and raw JSON views. Reset uses a durable journal, and measurement eligibility is tied to the actual lab generation. A second app instance cannot take over an owned workspace or stop its server.
 
-The latest recorded checks pass: **64 Rust/PostgreSQL, 23 frontend and 11 browser checks**. That does not mean the course is finished. An intermittent missing plan arrow remains unresolved, stale server markers currently block reopening, and resource watchdogs and broader recovery still need work. The latest isolated native build succeeds; its GUI recheck was blocked by the Mac lock state.
+The latest recorded checks pass: **64 Rust/PostgreSQL, 23 frontend and 12 browser checks**. That does not mean the course is finished. An intermittent missing plan arrow remains unresolved, stale server markers currently block reopening, and resource watchdogs and broader recovery still need work. The redesigned native build has been checked for SQL execution, grading, video playback and seeking on this Mac.
 
 The full [plan](docs/PLAN.md), dated [progress](docs/PROGRESS.md) and [review records](docs/reviews/) carry the details. Phase 1's external Claude review is pending source-transfer approval, so bulk video production has not started.
 
@@ -64,7 +64,7 @@ The target is 84 chapters with 504 required exercises. Planned fixtures span com
 | Database labs | App-managed PostgreSQL 18, Tokio, tokio-postgres |
 | Local progress | SQLite through rusqlite |
 | Workbench | React 19, TypeScript, Vite, CodeMirror, React Flow, TanStack Table, Radix |
-| Engine scenes | Three.js, Theatre.js and Anime.js |
+| Engine scenes | Deterministic SVG, Theatre.js and Anime.js |
 | Lessons and replay | Remotion and its player, local narration and timed captions |
 | Checks | Rust integration tests, Vitest/Testing Library and Playwright |
 

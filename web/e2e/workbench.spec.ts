@@ -24,6 +24,7 @@ test('cancel keeps the editor fixed during a run and usable afterwards',async({p
 });
 test('the authored lesson has playable local video and timed captions',async({page})=>{
  await page.goto('/');
+ await page.getByRole('tab',{name:'Watch lesson'}).click();
  const video=page.locator('video');
  await expect(video).toBeVisible();
  await expect.poll(()=>video.evaluate((v:HTMLVideoElement)=>v.duration)).toBeGreaterThan(417);

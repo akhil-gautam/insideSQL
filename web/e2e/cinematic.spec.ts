@@ -2,20 +2,22 @@ import {test,expect} from '@playwright/test';
 import {mkdir} from 'node:fs/promises';
 import {readFileSync} from 'node:fs';
 const output='.impeccable/review';
-test('inspect all six cinematic layers, pause, responsive framing and graphics fallback',async({page,browser})=>{
+test('inspect all six database diagrams, pause, responsive framing and reduced motion',async({page,browser})=>{
  await mkdir(output,{recursive:true});const errors:string[]=[];page.on('pageerror',e=>errors.push(e.message));
  await page.goto('/');await page.getByRole('tab',{name:'Explore the journey'}).click();
  await expect(page.getByText('Assembling the engine…')).toHaveCount(0);
- await expect(page.getByText('Inside the database engine.')).toBeVisible();
+ await expect(page.getByText('A query, from the inside.')).toBeVisible();
  await page.getByRole('button',{name:'Pause motion',exact:true}).click();
  await page.locator('.journey-scene').first().screenshot({path:`${output}/overview-desktop.png`});
  for(const stage of ['SQL text','Parser','Analyzer','Rewriter','Planner','Executor']){
   await page.getByRole('button',{name:stage,exact:true}).click();
   await expect(page.getByRole('img',{name:`SQL journey: ${stage} is highlighted`})).toBeVisible();
-  // Resume just long enough for the authored camera move, then hold the inspection.
+  // Resume through the authored transition, then verify that the diagram clock freezes.
   await page.getByRole('button',{name:'Resume motion',exact:true}).click();await page.waitForTimeout(1800);await page.getByRole('button',{name:'Pause motion',exact:true}).click();
-  const held=await page.locator('canvas').first().screenshot();await page.waitForTimeout(150);
-  expect((await page.locator('canvas').first().screenshot()).equals(held)).toBe(true);
+  const diagram=page.locator('.database-diagram').first();
+  // SVG attributes are the animation state; Chrome can repaint identical SVG pixels differently.
+  const held=await diagram.evaluate(el=>el.outerHTML);await page.waitForTimeout(150);
+  expect(await diagram.evaluate(el=>el.outerHTML)).toBe(held);
   await page.locator('.journey-scene').first().screenshot({path:`${output}/${stage.replace(' ','-').toLowerCase()}-desktop.png`});
  }
  await page.screenshot({path:`${output}/workbench-desktop.png`,fullPage:true});expect(errors).toEqual([]);
@@ -23,11 +25,10 @@ test('inspect all six cinematic layers, pause, responsive framing and graphics f
  await expect(small.getByText('Assembling the engine…')).toHaveCount(0);await expect(small.getByRole('button',{name:'Reduced motion'})).toBeDisabled();
  await small.locator('.journey-scene').first().screenshot({path:`${output}/overview-mobile.png`});await small.getByRole('button',{name:'Parser',exact:true}).click();
  await small.locator('.journey-scene').first().screenshot({path:`${output}/parser-mobile.png`});await small.screenshot({path:`${output}/workbench-mobile.png`,fullPage:true});
- const still=await small.locator('canvas').first().screenshot();await small.waitForTimeout(150);
- expect((await small.locator('canvas').first().screenshot()).equals(still)).toBe(true);
+ const still=await small.locator('.database-diagram').first().screenshot();await small.waitForTimeout(150);
+ expect((await small.locator('.database-diagram').first().screenshot()).equals(still)).toBe(true);
  expect(await small.evaluate(()=>document.documentElement.scrollWidth<=window.innerWidth)).toBe(true);await mobile.close();
- await page.locator('canvas').first().evaluate(canvas=>canvas.dispatchEvent(new Event('webglcontextlost',{cancelable:true})));
- await expect(page.getByText('The 3D view lost its graphics context.',{exact:false})).toBeVisible();await page.getByRole('button',{name:'Analyzer',exact:true}).click();await expect(page.getByText('Names acquire meaning.')).toBeVisible();
+ await expect(page.locator('canvas')).toHaveCount(0);await page.getByRole('button',{name:'Analyzer',exact:true}).click();await expect(page.getByText('Names acquire meaning.')).toBeVisible();
 });
 
 test('silent replay respects native media policy, advances the player clock and pauses on a stable frame',async({page})=>{
@@ -53,6 +54,6 @@ test('silent replay respects native media policy, advances the player clock and 
  expect(violations).toEqual([]);
  await replay.getByRole('button',{name:'Pause video',exact:true}).click();
  await expect(replay.getByRole('button',{name:'Play video',exact:true})).toBeVisible();
- const canvas=replay.locator('canvas');const first=await canvas.screenshot();await page.waitForTimeout(200);
+ const canvas=replay.locator('.database-diagram');const first=await canvas.screenshot();await page.waitForTimeout(200);
  expect((await canvas.screenshot()).equals(first)).toBe(true);
 });

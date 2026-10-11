@@ -1,0 +1,23 @@
+import {test,expect} from '@playwright/test';
+test('the exercise and editor share the first viewport with their actions',async({page})=>{
+ await page.setViewportSize({width:1440,height:960});await page.goto('/');
+ const practice=page.getByRole('region',{name:'SQL practice'});
+ await expect(practice).toBeVisible();
+ const prompt=await practice.getByRole('heading',{name:'Find paid orders'}).boundingBox();
+ const editor=await page.getByRole('textbox',{name:'SQL query'}).boundingBox();
+ const check=await page.getByRole('button',{name:'Check my query'}).boundingBox();
+ expect(prompt).not.toBeNull();expect(editor).not.toBeNull();expect(check).not.toBeNull();
+ expect(editor!.y).toBeGreaterThan(prompt!.y);expect(editor!.y+editor!.height).toBeLessThan(800);
+ expect(check!.y+check!.height).toBeLessThan(900);expect(Math.abs(editor!.x-prompt!.x)).toBeLessThan(50);
+ await page.setViewportSize({width:390,height:844});
+ await expect(page.getByRole('button',{name:'Show curriculum'})).toBeVisible();
+ await page.getByRole('button',{name:'Show curriculum'}).click();
+ await expect(page.getByRole('navigation',{name:'Chapters'})).toBeVisible();
+ await page.getByRole('button',{name:'Hide curriculum'}).click();
+ const drawing=page.locator('.database-diagram').first();
+ expect((await drawing.boundingBox())!.width).toBeGreaterThanOrEqual(600);
+ const viewport=page.locator('.engine-viewport').first();
+ await viewport.focus();await page.keyboard.press('ArrowRight');
+ await expect.poll(()=>viewport.evaluate(el=>el.scrollLeft)).toBeGreaterThan(0);
+ expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);
+});

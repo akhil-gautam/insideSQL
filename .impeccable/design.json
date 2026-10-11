@@ -1,514 +1,381 @@
 {
   "schemaVersion": 2,
-  "generatedAt": "2026-10-11T01:34:18.927771+00:00",
-  "title": "Design System: SQL Internals Academy",
+  "generatedAt": "2026-10-11T12:28:00.810323+00:00",
+  "title": "Design System: SQL Internals Academy / insideSQL",
   "extensions": {
     "colorMeta": {
       "ink": {
         "role": "neutral",
         "displayName": "Ink",
-        "canonical": "#23344d",
         "tonalRamp": [
-          "oklch(15% 0.05019 257.89)",
-          "oklch(26% 0.05019 257.89)",
-          "oklch(38% 0.05019 257.89)",
-          "oklch(49% 0.05019 257.89)",
-          "oklch(61% 0.05019 257.89)",
-          "oklch(72% 0.05019 257.89)",
-          "oklch(84% 0.05019 257.89)",
-          "oklch(95% 0.05019 257.89)"
+          "oklch(15% 0.02352 164.67)",
+          "oklch(26% 0.02352 164.67)",
+          "oklch(38% 0.02352 164.67)",
+          "oklch(49% 0.02352 164.67)",
+          "oklch(61% 0.02352 164.67)",
+          "oklch(72% 0.02352 164.67)",
+          "oklch(84% 0.02352 164.67)",
+          "oklch(95% 0.02352 164.67)"
         ]
       },
-      "blue": {
+      "accent": {
         "role": "primary",
-        "displayName": "Blue",
-        "canonical": "#2459b8",
+        "displayName": "Pine",
         "tonalRamp": [
-          "oklch(15% 0.16082 261.00)",
-          "oklch(26% 0.16082 261.00)",
-          "oklch(38% 0.16082 261.00)",
-          "oklch(49% 0.16082 261.00)",
-          "oklch(61% 0.16082 261.00)",
-          "oklch(72% 0.16082 261.00)",
-          "oklch(84% 0.16082 261.00)",
-          "oklch(95% 0.16082 261.00)"
+          "oklch(15% 0.05555 162.44)",
+          "oklch(26% 0.05555 162.44)",
+          "oklch(38% 0.05555 162.44)",
+          "oklch(49% 0.05555 162.44)",
+          "oklch(61% 0.05555 162.44)",
+          "oklch(72% 0.05555 162.44)",
+          "oklch(84% 0.05555 162.44)",
+          "oklch(95% 0.05555 162.44)"
         ]
       },
-      "blue-hover": {
-        "role": "neutral",
-        "displayName": "Blue Hover",
-        "canonical": "#19499e",
+      "accent-hover": {
+        "role": "primary",
+        "displayName": "Deep Pine",
         "tonalRamp": [
-          "oklch(15% 0.14793 260.90)",
-          "oklch(26% 0.14793 260.90)",
-          "oklch(38% 0.14793 260.90)",
-          "oklch(49% 0.14793 260.90)",
-          "oklch(61% 0.14793 260.90)",
-          "oklch(72% 0.14793 260.90)",
-          "oklch(84% 0.14793 260.90)",
-          "oklch(95% 0.14793 260.90)"
+          "oklch(15% 0.05234 160.77)",
+          "oklch(26% 0.05234 160.77)",
+          "oklch(38% 0.05234 160.77)",
+          "oklch(49% 0.05234 160.77)",
+          "oklch(61% 0.05234 160.77)",
+          "oklch(72% 0.05234 160.77)",
+          "oklch(84% 0.05234 160.77)",
+          "oklch(95% 0.05234 160.77)"
         ]
       },
       "muted": {
         "role": "neutral",
         "displayName": "Muted",
-        "canonical": "#718097",
         "tonalRamp": [
-          "oklch(15% 0.03944 258.85)",
-          "oklch(26% 0.03944 258.85)",
-          "oklch(38% 0.03944 258.85)",
-          "oklch(49% 0.03944 258.85)",
-          "oklch(61% 0.03944 258.85)",
-          "oklch(72% 0.03944 258.85)",
-          "oklch(84% 0.03944 258.85)",
-          "oklch(95% 0.03944 258.85)"
+          "oklch(15% 0.02371 160.88)",
+          "oklch(26% 0.02371 160.88)",
+          "oklch(38% 0.02371 160.88)",
+          "oklch(49% 0.02371 160.88)",
+          "oklch(61% 0.02371 160.88)",
+          "oklch(72% 0.02371 160.88)",
+          "oklch(84% 0.02371 160.88)",
+          "oklch(95% 0.02371 160.88)"
         ]
       },
       "line": {
         "role": "neutral",
         "displayName": "Line",
-        "canonical": "#dce3ed",
         "tonalRamp": [
-          "oklch(15% 0.01557 257.20)",
-          "oklch(26% 0.01557 257.20)",
-          "oklch(38% 0.01557 257.20)",
-          "oklch(49% 0.01557 257.20)",
-          "oklch(61% 0.01557 257.20)",
-          "oklch(72% 0.01557 257.20)",
-          "oklch(84% 0.01557 257.20)",
-          "oklch(95% 0.01557 257.20)"
+          "oklch(15% 0.01421 138.71)",
+          "oklch(26% 0.01421 138.71)",
+          "oklch(38% 0.01421 138.71)",
+          "oklch(49% 0.01421 138.71)",
+          "oklch(61% 0.01421 138.71)",
+          "oklch(72% 0.01421 138.71)",
+          "oklch(84% 0.01421 138.71)",
+          "oklch(95% 0.01421 138.71)"
         ]
       },
-      "workbench-ground": {
+      "paper": {
         "role": "neutral",
-        "displayName": "Workbench Ground",
-        "canonical": "#eef2f8",
+        "displayName": "Paper",
         "tonalRamp": [
-          "oklch(15% 0.00911 258.34)",
-          "oklch(26% 0.00911 258.34)",
-          "oklch(38% 0.00911 258.34)",
-          "oklch(49% 0.00911 258.34)",
-          "oklch(61% 0.00911 258.34)",
-          "oklch(72% 0.00911 258.34)",
-          "oklch(84% 0.00911 258.34)",
-          "oklch(95% 0.00911 258.34)"
+          "oklch(15% 0.00538 117.92)",
+          "oklch(26% 0.00538 117.92)",
+          "oklch(38% 0.00538 117.92)",
+          "oklch(49% 0.00538 117.92)",
+          "oklch(61% 0.00538 117.92)",
+          "oklch(72% 0.00538 117.92)",
+          "oklch(84% 0.00538 117.92)",
+          "oklch(95% 0.00538 117.92)"
         ]
       },
-      "workbench-surface": {
+      "surface": {
         "role": "neutral",
-        "displayName": "Workbench Surface",
-        "canonical": "#ffffff",
+        "displayName": "Surface",
         "tonalRamp": [
-          "oklch(15% 0.00000 89.88)",
-          "oklch(26% 0.00000 89.88)",
-          "oklch(38% 0.00000 89.88)",
-          "oklch(49% 0.00000 89.88)",
-          "oklch(61% 0.00000 89.88)",
-          "oklch(72% 0.00000 89.88)",
-          "oklch(84% 0.00000 89.88)",
-          "oklch(95% 0.00000 89.88)"
+          "oklch(15% 0.00000 0.00)",
+          "oklch(26% 0.00000 0.00)",
+          "oklch(38% 0.00000 0.00)",
+          "oklch(49% 0.00000 0.00)",
+          "oklch(61% 0.00000 0.00)",
+          "oklch(72% 0.00000 0.00)",
+          "oklch(84% 0.00000 0.00)",
+          "oklch(95% 0.00000 0.00)"
         ]
       },
-      "sidebar-ground": {
+      "soft": {
         "role": "neutral",
-        "displayName": "Sidebar Ground",
-        "canonical": "#e5ebf4",
+        "displayName": "Soft",
         "tonalRamp": [
-          "oklch(15% 0.01376 258.35)",
-          "oklch(26% 0.01376 258.35)",
-          "oklch(38% 0.01376 258.35)",
-          "oklch(49% 0.01376 258.35)",
-          "oklch(61% 0.01376 258.35)",
-          "oklch(72% 0.01376 258.35)",
-          "oklch(84% 0.01376 258.35)",
-          "oklch(95% 0.01376 258.35)"
+          "oklch(15% 0.01067 136.56)",
+          "oklch(26% 0.01067 136.56)",
+          "oklch(38% 0.01067 136.56)",
+          "oklch(49% 0.01067 136.56)",
+          "oklch(61% 0.01067 136.56)",
+          "oklch(72% 0.01067 136.56)",
+          "oklch(84% 0.01067 136.56)",
+          "oklch(95% 0.01067 136.56)"
         ]
       },
-      "button-hover": {
+      "sidebar": {
         "role": "neutral",
-        "displayName": "Button Hover",
-        "canonical": "#edf3ff",
+        "displayName": "Sidebar",
         "tonalRamp": [
-          "oklch(15% 0.01733 264.49)",
-          "oklch(26% 0.01733 264.49)",
-          "oklch(38% 0.01733 264.49)",
-          "oklch(49% 0.01733 264.49)",
-          "oklch(61% 0.01733 264.49)",
-          "oklch(72% 0.01733 264.49)",
-          "oklch(84% 0.01733 264.49)",
-          "oklch(95% 0.01733 264.49)"
+          "oklch(15% 0.00855 128.56)",
+          "oklch(26% 0.00855 128.56)",
+          "oklch(38% 0.00855 128.56)",
+          "oklch(49% 0.00855 128.56)",
+          "oklch(61% 0.00855 128.56)",
+          "oklch(72% 0.00855 128.56)",
+          "oklch(84% 0.00855 128.56)",
+          "oklch(95% 0.00855 128.56)"
         ]
       },
       "focus": {
         "role": "neutral",
         "displayName": "Focus",
-        "canonical": "#8aabeb",
         "tonalRamp": [
-          "oklch(15% 0.10012 263.14)",
-          "oklch(26% 0.10012 263.14)",
-          "oklch(38% 0.10012 263.14)",
-          "oklch(49% 0.10012 263.14)",
-          "oklch(61% 0.10012 263.14)",
-          "oklch(72% 0.10012 263.14)",
-          "oklch(84% 0.10012 263.14)",
-          "oklch(95% 0.10012 263.14)"
+          "oklch(15% 0.05585 157.44)",
+          "oklch(26% 0.05585 157.44)",
+          "oklch(38% 0.05585 157.44)",
+          "oklch(49% 0.05585 157.44)",
+          "oklch(61% 0.05585 157.44)",
+          "oklch(72% 0.05585 157.44)",
+          "oklch(84% 0.05585 157.44)",
+          "oklch(95% 0.05585 157.44)"
         ]
       },
-      "engine-ground": {
+      "diagram-ground": {
         "role": "neutral",
-        "displayName": "Engine Ground",
-        "canonical": "#201e1d",
+        "displayName": "Diagram Ground",
         "tonalRamp": [
-          "oklch(15% 0.00362 48.57)",
-          "oklch(26% 0.00362 48.57)",
-          "oklch(38% 0.00362 48.57)",
-          "oklch(49% 0.00362 48.57)",
-          "oklch(61% 0.00362 48.57)",
-          "oklch(72% 0.00362 48.57)",
-          "oklch(84% 0.00362 48.57)",
-          "oklch(95% 0.00362 48.57)"
+          "oklch(15% 0.00535 117.92)",
+          "oklch(26% 0.00535 117.92)",
+          "oklch(38% 0.00535 117.92)",
+          "oklch(49% 0.00535 117.92)",
+          "oklch(61% 0.00535 117.92)",
+          "oklch(72% 0.00535 117.92)",
+          "oklch(84% 0.00535 117.92)",
+          "oklch(95% 0.00535 117.92)"
         ]
       },
-      "engine-copy": {
+      "diagram-ink": {
         "role": "neutral",
-        "displayName": "Engine Copy",
-        "canonical": "#fff0df",
+        "displayName": "Diagram Ink",
         "tonalRamp": [
-          "oklch(15% 0.02774 70.95)",
-          "oklch(26% 0.02774 70.95)",
-          "oklch(38% 0.02774 70.95)",
-          "oklch(49% 0.02774 70.95)",
-          "oklch(61% 0.02774 70.95)",
-          "oklch(72% 0.02774 70.95)",
-          "oklch(84% 0.02774 70.95)",
-          "oklch(95% 0.02774 70.95)"
+          "oklch(15% 0.02852 150.69)",
+          "oklch(26% 0.02852 150.69)",
+          "oklch(38% 0.02852 150.69)",
+          "oklch(49% 0.02852 150.69)",
+          "oklch(61% 0.02852 150.69)",
+          "oklch(72% 0.02852 150.69)",
+          "oklch(84% 0.02852 150.69)",
+          "oklch(95% 0.02852 150.69)"
         ]
       },
-      "engine-muted": {
+      "diagram-line": {
         "role": "neutral",
-        "displayName": "Engine Muted",
-        "canonical": "#c7b9ab",
+        "displayName": "Diagram Line",
         "tonalRamp": [
-          "oklch(15% 0.02514 67.45)",
-          "oklch(26% 0.02514 67.45)",
-          "oklch(38% 0.02514 67.45)",
-          "oklch(49% 0.02514 67.45)",
-          "oklch(61% 0.02514 67.45)",
-          "oklch(72% 0.02514 67.45)",
-          "oklch(84% 0.02514 67.45)",
-          "oklch(95% 0.02514 67.45)"
+          "oklch(15% 0.04255 131.75)",
+          "oklch(26% 0.04255 131.75)",
+          "oklch(38% 0.04255 131.75)",
+          "oklch(49% 0.04255 131.75)",
+          "oklch(61% 0.04255 131.75)",
+          "oklch(72% 0.04255 131.75)",
+          "oklch(84% 0.04255 131.75)",
+          "oklch(95% 0.04255 131.75)"
         ]
       },
-      "engine-accent": {
+      "diagram-green": {
         "role": "primary",
-        "displayName": "Engine Accent",
-        "canonical": "#ffc59e",
+        "displayName": "Diagram Green",
         "tonalRamp": [
-          "oklch(15% 0.08421 55.24)",
-          "oklch(26% 0.08421 55.24)",
-          "oklch(38% 0.08421 55.24)",
-          "oklch(49% 0.08421 55.24)",
-          "oklch(61% 0.08421 55.24)",
-          "oklch(72% 0.08421 55.24)",
-          "oklch(84% 0.08421 55.24)",
-          "oklch(95% 0.08421 55.24)"
+          "oklch(15% 0.09474 133.73)",
+          "oklch(26% 0.09474 133.73)",
+          "oklch(38% 0.09474 133.73)",
+          "oklch(49% 0.09474 133.73)",
+          "oklch(61% 0.09474 133.73)",
+          "oklch(72% 0.09474 133.73)",
+          "oklch(84% 0.09474 133.73)",
+          "oklch(95% 0.09474 133.73)"
         ]
       },
-      "engine-panel": {
+      "diagram-soft": {
         "role": "neutral",
-        "displayName": "Engine Panel",
-        "canonical": "#292624",
+        "displayName": "Diagram Soft",
         "tonalRamp": [
-          "oklch(15% 0.00578 56.14)",
-          "oklch(26% 0.00578 56.14)",
-          "oklch(38% 0.00578 56.14)",
-          "oklch(49% 0.00578 56.14)",
-          "oklch(61% 0.00578 56.14)",
-          "oklch(72% 0.00578 56.14)",
-          "oklch(84% 0.00578 56.14)",
-          "oklch(95% 0.00578 56.14)"
-        ]
-      },
-      "engine-border": {
-        "role": "neutral",
-        "displayName": "Engine Border",
-        "canonical": "#55504b",
-        "tonalRamp": [
-          "oklch(15% 0.01045 67.55)",
-          "oklch(26% 0.01045 67.55)",
-          "oklch(38% 0.01045 67.55)",
-          "oklch(49% 0.01045 67.55)",
-          "oklch(61% 0.01045 67.55)",
-          "oklch(72% 0.01045 67.55)",
-          "oklch(84% 0.01045 67.55)",
-          "oklch(95% 0.01045 67.55)"
-        ]
-      },
-      "engine-hover": {
-        "role": "neutral",
-        "displayName": "Engine Hover",
-        "canonical": "#403932",
-        "tonalRamp": [
-          "oklch(15% 0.01540 67.29)",
-          "oklch(26% 0.01540 67.29)",
-          "oklch(38% 0.01540 67.29)",
-          "oklch(49% 0.01540 67.29)",
-          "oklch(61% 0.01540 67.29)",
-          "oklch(72% 0.01540 67.29)",
-          "oklch(84% 0.01540 67.29)",
-          "oklch(95% 0.01540 67.29)"
-        ]
-      },
-      "engine-graphite": {
-        "role": "neutral",
-        "displayName": "Engine Graphite",
-        "canonical": "#4c4946",
-        "tonalRamp": [
-          "oklch(15% 0.00638 67.65)",
-          "oklch(26% 0.00638 67.65)",
-          "oklch(38% 0.00638 67.65)",
-          "oklch(49% 0.00638 67.65)",
-          "oklch(61% 0.00638 67.65)",
-          "oklch(72% 0.00638 67.65)",
-          "oklch(84% 0.00638 67.65)",
-          "oklch(95% 0.00638 67.65)"
-        ]
-      },
-      "engine-steel": {
-        "role": "neutral",
-        "displayName": "Engine Steel",
-        "canonical": "#8b8179",
-        "tonalRamp": [
-          "oklch(15% 0.01704 61.18)",
-          "oklch(26% 0.01704 61.18)",
-          "oklch(38% 0.01704 61.18)",
-          "oklch(49% 0.01704 61.18)",
-          "oklch(61% 0.01704 61.18)",
-          "oklch(72% 0.01704 61.18)",
-          "oklch(84% 0.01704 61.18)",
-          "oklch(95% 0.01704 61.18)"
-        ]
-      },
-      "engine-edge": {
-        "role": "neutral",
-        "displayName": "Engine Edge",
-        "canonical": "#161312",
-        "tonalRamp": [
-          "oklch(15% 0.00532 39.36)",
-          "oklch(26% 0.00532 39.36)",
-          "oklch(38% 0.00532 39.36)",
-          "oklch(49% 0.00532 39.36)",
-          "oklch(61% 0.00532 39.36)",
-          "oklch(72% 0.00532 39.36)",
-          "oklch(84% 0.00532 39.36)",
-          "oklch(95% 0.00532 39.36)"
-        ]
-      },
-      "caption-ground": {
-        "role": "neutral",
-        "displayName": "Caption Ground",
-        "canonical": "#181615",
-        "tonalRamp": [
-          "oklch(15% 0.00377 48.53)",
-          "oklch(26% 0.00377 48.53)",
-          "oklch(38% 0.00377 48.53)",
-          "oklch(49% 0.00377 48.53)",
-          "oklch(61% 0.00377 48.53)",
-          "oklch(72% 0.00377 48.53)",
-          "oklch(84% 0.00377 48.53)",
-          "oklch(95% 0.00377 48.53)"
+          "oklch(15% 0.01832 127.14)",
+          "oklch(26% 0.01832 127.14)",
+          "oklch(38% 0.01832 127.14)",
+          "oklch(49% 0.01832 127.14)",
+          "oklch(61% 0.01832 127.14)",
+          "oklch(72% 0.01832 127.14)",
+          "oklch(84% 0.01832 127.14)",
+          "oklch(95% 0.01832 127.14)"
         ]
       }
     },
     "typographyMeta": {
-      "body": {
-        "displayName": "Body",
-        "purpose": "Current body typography."
-      },
-      "headline": {
-        "displayName": "Headline",
-        "purpose": "Current headline typography."
-      },
-      "workbench-label": {
-        "displayName": "Workbench Label",
-        "purpose": "Current workbench label typography."
-      },
-      "engine-title": {
-        "displayName": "Engine Title",
-        "purpose": "Current engine title typography."
-      },
-      "engine-body": {
-        "displayName": "Engine Body",
-        "purpose": "Current engine body typography."
-      },
       "sql": {
-        "displayName": "Sql",
-        "purpose": "Actual SQL text and editor content."
+        "displayName": "SQL and data",
+        "purpose": "CodeMirror text and code/data surfaces."
       },
-      "engine-annotation": {
-        "displayName": "Engine Annotation",
-        "purpose": "Selected-stage DOM source labels in interactive desktop and mobile views."
-      },
-      "video-title": {
-        "displayName": "Video Title",
-        "purpose": "Current video title typography."
-      },
-      "video-annotation": {
-        "displayName": "Video Annotation",
-        "purpose": "Selected-stage DOM labels in rendered video."
-      },
-      "video-caption": {
-        "displayName": "Video Caption",
-        "purpose": "Current video caption typography."
+      "diagram-annotation": {
+        "displayName": "Vector annotation",
+        "purpose": "Minimum authored SVG text size; mobile preserves the 600px drawing width."
       }
     },
     "shadows": [
       {
-        "name": "selected-chapter",
-        "value": "0 2px 6px #314a7210",
-        "purpose": "Subtle separation for the active chapter row."
+        "name": "chapter-selected",
+        "value": "0 2px 5px #253e2210",
+        "purpose": "Current chapter."
+      },
+      {
+        "name": "result-selected",
+        "value": "0 1px 3px #31472114",
+        "purpose": "Current result view switch."
+      },
+      {
+        "name": "mobile-curriculum",
+        "value": "8px 0 25px #233b2218",
+        "purpose": "Disclosed curriculum overlay."
       }
     ],
     "motion": [
       {
-        "name": "button-background",
-        "value": "background .12s",
-        "purpose": "Workbench button hover transition."
+        "name": "control-transition",
+        "value": "160ms ease-out",
+        "purpose": "Background, border and text hover transitions."
       },
       {
-        "name": "camera-transition",
-        "value": "1.6s / Anime.js eases.outExpo",
-        "purpose": "Seekable inspection movement between overview and stages."
+        "name": "stage-blend",
+        "value": "1.6s outExpo",
+        "purpose": "Anime stage crossfade and short vertical settling; shared deterministic frame math with Theatre progression and Remotion video."
       },
       {
-        "name": "assembly-orbit",
-        "value": "sin(progress * 2π) * 0.045 radians",
-        "purpose": "Subtle assembly motion; settles at zero for reduced motion."
+        "name": "reduced-motion",
+        "value": "static activity; immediate stage selection",
+        "purpose": "Respect reduced motion and expose the explicit reduced-motion control state."
       }
     ],
     "breakpoints": [
       {
-        "name": "workbench-medium",
-        "value": "1250px"
+        "name": "wide",
+        "value": "1600px"
       },
       {
-        "name": "workbench-stack",
-        "value": "1000px"
+        "name": "compact-desktop",
+        "value": "1190px"
       },
       {
-        "name": "workbench-narrow",
+        "name": "stacked-practice-first",
+        "value": "980px"
+      },
+      {
+        "name": "mobile",
         "value": "650px"
-      },
-      {
-        "name": "journey-narrow",
-        "value": "600px"
       }
     ]
   },
   "components": [
     {
-      "name": "Run Button",
+      "name": "Check query",
       "kind": "button",
-      "refersTo": "button-primary",
-      "description": "Compact blue SQL execution action.",
-      "html": "<button class=\"ds-run\">Run</button>",
-      "css": ".ds-run{font-family:-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;font-size:14px;cursor:pointer;border:1px solid var(--line, #dce3ed);border-radius:6px;padding:8px 12px;transition:background .12s;font-size:11px;padding:7px 11px;background:var(--blue, #2459b8);color:white;border-color:var(--blue, #2459b8)}.ds-run:hover{background:#19499e}.ds-run:focus-visible{outline:3px solid #8aabeb;outline-offset:3px;}"
+      "description": "Primary assessment action.",
+      "html": "<button class=\"ds-check\">Check my query</button>",
+      "css": ".ds-check{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;font-size:10px;background:var(--accent,#365e4b);color:var(--surface,#fff);border:1px solid var(--accent,#365e4b);border-radius:6px;padding:8px 9px;cursor:pointer;transition:background 160ms ease-out,border-color 160ms ease-out,color 160ms ease-out}.ds-check:hover:not(:disabled){background:#284c3a;border-color:#284c3a}.ds-check:focus-visible{outline:2px solid var(--focus,#577d66);outline-offset:3px}.ds-check:disabled{opacity:.5;cursor:default}",
+      "refersTo": "button-primary"
     },
     {
-      "name": "Secondary Action",
+      "name": "Secondary button",
       "kind": "button",
-      "refersTo": "button-secondary",
-      "description": "Quiet workbench action such as Explain or Reset.",
-      "html": "<button class=\"ds-secondary\">Explain</button>",
-      "css": ".ds-secondary{font-family:-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;font-size:14px;cursor:pointer;border:1px solid var(--line, #dce3ed);border-radius:6px;padding:8px 12px;transition:background .12s;background:white;color:var(--ink, #23344d)}.ds-secondary:hover{background:#edf3ff}.ds-secondary:focus-visible{outline:3px solid #8aabeb;outline-offset:3px;}"
+      "description": "Quiet outlined control.",
+      "html": "<button class=\"ds-secondary\">Continue chapter</button>",
+      "css": ".ds-secondary{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;font-size:11px;background:transparent;color:var(--ink,#26352e);border:1px solid var(--line,#dce3da);border-radius:6px;padding:8px 12px;cursor:pointer;transition:background 160ms ease-out,border-color 160ms ease-out,color 160ms ease-out}.ds-secondary:hover:not(:disabled){background:var(--soft,#edf2eb);border-color:#b9c9b9}.ds-secondary:focus-visible{outline:2px solid var(--focus,#577d66);outline-offset:3px}.ds-secondary:disabled{opacity:.5;cursor:default}",
+      "refersTo": "button-secondary"
     },
     {
-      "name": "Selected Chapter",
-      "kind": "nav",
-      "refersTo": "chapter-active",
-      "description": "The active chapter row with local exercise progress.",
-      "html": "<nav aria-label=\"Chapter sample\"><button class=\"ds-chapter\"><span class=\"ds-number\">1</span><span>A SELECT statement,<br>end to end<small>0/6 exercises passed</small></span></button></nav>",
-      "css": ".ds-chapter{font-family:-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;display:flex;align-items:center;gap:12px;text-align:left;width:236px;padding:13px 8px;border:0;background:white;color:var(--blue, #2459b8);border-radius:8px;font-size:12px;line-height:1.45;box-shadow:0 2px 6px #314a7210;cursor:pointer}.ds-number{border:1px solid #c6d8f7;border-radius:50%;display:grid;place-items:center;width:25px;height:25px;background:#e8f0fe;font-size:11px}.ds-chapter small{display:block;font-size:10px;margin-top:4px;color:#7b8daa}.ds-chapter:hover{background:#edf3ff}.ds-chapter:focus-visible{outline:3px solid #8aabeb;outline-offset:3px;}"
-    },
-    {
-      "name": "Editor Container",
-      "kind": "card",
-      "refersTo": "workbench-panel",
-      "description": "White working surface with a pale header and border.",
-      "html": "<section class=\"ds-panel\"><header class=\"ds-panel-header\">Query workspace</header><p class=\"ds-panel-body\">See what your query does.</p></section>",
-      "css": ".ds-panel{font-family:-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;background:white;border:1px solid var(--line, #dce3ed);border-radius:10px;overflow:hidden;color:var(--ink, #23344d)}.ds-panel-header{height:49px;display:flex;align-items:center;padding:0 18px;border-bottom:1px solid var(--line, #dce3ed);background:#fafbfd;font-size:12px;font-weight:600}.ds-panel-body{margin:0;padding:32px 22px;color:#657b99;font-size:12px;line-height:1.8}"
-    },
-    {
-      "name": "SQL Editor Surface",
+      "name": "SQL editor surface",
       "kind": "input",
-      "refersTo": "sql-editor",
-      "description": "Static preview of the SQL editor surface; actual runtime uses CodeMirror.",
-      "html": "<textarea class=\"ds-sql\" aria-label=\"SQL query\" spellcheck=\"false\">SELECT id, total\nFROM orders\nWHERE status = 'paid';</textarea>",
-      "css": ".ds-sql{display:block;width:100%;height:210px;border:0;background:white;padding:16px;font-family:ui-monospace, SFMono-Regular, Menlo, monospace;font-size:14px;color:#23344d;resize:none}.ds-sql:focus-visible{outline:3px solid #8aabeb;outline-offset:3px}"
+      "description": "Static visual sample of the CodeMirror surface.",
+      "html": "<textarea class=\"ds-sql\" aria-label=\"SQL query\" spellcheck=\"false\">SELECT id, total\nFROM orders\nWHERE status = 'paid'\nORDER BY id;</textarea>",
+      "css": ".ds-sql{font-family:var(--code,'IBM Plex Mono',monospace);font-size:12px;line-height:1.85;display:block;max-width:100%;width:320px;height:224px;padding:20px 18px;border:1px solid var(--line,#dce3da);background:var(--surface,#fff);color:var(--ink,#26352e);caret-color:var(--accent,#365e4b);resize:vertical}.ds-sql:focus-visible{outline:2px solid var(--focus,#577d66);outline-offset:3px}.ds-sql::selection{background:#dcead7}",
+      "refersTo": "sql-editor"
     },
     {
-      "name": "Journey Stage Selector",
-      "kind": "button",
-      "refersTo": "engine-stage",
-      "description": "Copper selected state in the scoped charcoal journey.",
-      "html": "<div class=\"ds-stage-row\"><button class=\"ds-stage\" aria-pressed=\"false\">Overview</button><button class=\"ds-stage\" aria-pressed=\"true\">Parser</button></div>",
-      "css": ".ds-stage-row{padding:12px 18px;display:flex;gap:6px;flex-wrap:wrap;background:#292624;border-top:1px solid #55504b}.ds-stage{font-family:\"IBM Plex Mono\",monospace;font-size:10px;padding:7px 9px;background:transparent;color:#c7b9ab;border:1px solid #55504b;border-radius:2px;cursor:pointer}.ds-stage:hover{background:#403932}.ds-stage[aria-pressed=true]{background:#ffc59e;color:#201e1d;border-color:#ffc59e}.ds-stage:focus-visible{outline:2px solid #ffc59e;outline-offset:3px}"
+      "name": "Lesson tabs",
+      "kind": "nav",
+      "description": "Underline selection across the lesson views.",
+      "html": "<nav class=\"ds-tabs\" aria-label=\"Lesson views\"><button aria-current=\"page\">Explore the journey</button><button>Watch lesson</button><button>Transcript</button></nav>",
+      "css": ".ds-tabs{display:flex;gap:21px;padding:0 19px;background:var(--surface,#fff);border:1px solid var(--line,#dce3da);border-bottom:0;border-radius:9px 9px 0 0;flex-wrap:wrap}.ds-tabs button{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;font-size:11px;border:0;border-bottom:2px solid transparent;padding:13px 0;background:transparent;color:var(--muted,#617168);cursor:pointer}.ds-tabs button[aria-current]{color:var(--accent,#365e4b);border-bottom-color:var(--accent,#365e4b);font-weight:600}.ds-tabs button:hover{color:var(--ink,#26352e)}.ds-tabs button:focus-visible{outline:2px solid var(--focus,#577d66);outline-offset:3px}"
     },
     {
-      "name": "Illustration Disclosure",
+      "name": "Illustration disclosure",
       "kind": "chip",
-      "refersTo": "illustration-label",
-      "description": "Noninteractive badge distinguishing illustration from query evidence.",
-      "html": "<span class=\"ds-illustrated\">Illustrated mechanism</span>",
-      "css": ".ds-illustrated{display:inline-block;background:#201e1d;font-family:\"IBM Plex Mono\",monospace;font-size:9px;line-height:1.5;color:#c7b9ab;border:1px solid #55504b;padding:5px 8px;white-space:nowrap}"
+      "description": "Noninteractive label that distinguishes illustration from measurement.",
+      "html": "<span class=\"ds-illustration\">Illustrated mechanism</span>",
+      "css": ".ds-illustration{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;display:inline-block;font-size:8px;color:#617554;border:1px solid #dce5d2;padding:4px 6px;border-radius:3px;background:#f5f9ef;white-space:nowrap}",
+      "refersTo": "illustration-label"
     },
     {
-      "name": "Source Annotation",
+      "name": "Practice prompt",
+      "kind": "card",
+      "description": "Upper part of the connected practice surface.",
+      "html": "<section class=\"ds-prompt\"><h2>Find paid orders</h2><p>Return id and total for every paid order. Show the rows by id in ascending order.</p></section>",
+      "css": ".ds-prompt{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;padding:17px 20px 20px;background:var(--surface,#fff);border:1px solid var(--line,#dce3da);border-radius:9px 9px 0 0;color:var(--ink,#26352e);max-width:425px}.ds-prompt h2{font:500 21px/1.3 \"Space Grotesk\",sans-serif;letter-spacing:-.5px;margin:0 0 8px}.ds-prompt p{font-size:12px;line-height:1.75;color:#52634f;margin:0;max-width:68ch}",
+      "refersTo": "lesson-panel"
+    },
+    {
+      "name": "Stage selection",
+      "kind": "button",
+      "description": "Pressed state identifies the inspected database structure.",
+      "html": "<div class=\"ds-stages\"><button aria-pressed=\"false\">Overview</button><button aria-pressed=\"true\">Parser</button><button aria-pressed=\"false\">Analyzer</button></div>",
+      "css": ".ds-stages{display:flex;flex-wrap:wrap;gap:4px;padding:12px 14px;border-top:1px solid var(--line,#dce3da);background:var(--surface,#fff)}.ds-stages button{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;border:0;border-radius:4px;font-size:9px;padding:6px 7px;color:#68795a;background:transparent;cursor:pointer;transition:background 160ms ease-out,border-color 160ms ease-out,color 160ms ease-out}.ds-stages button[aria-pressed=true]{background:#e9f1e1;color:#3f6130}.ds-stages button:hover{background:var(--soft,#edf2eb)}.ds-stages button:focus-visible{outline:2px solid var(--focus,#577d66);outline-offset:3px}",
+      "refersTo": "stage-control"
+    },
+    {
+      "name": "Diagram scroller",
       "kind": "custom",
-      "refersTo": "engine-annotation",
-      "description": "Sharp projected source labels shown for the selected chamber.",
-      "html": "<div class=\"ds-annotation-ground\"><span class=\"ds-annotation\">SelectStmt</span></div>",
-      "css": ".ds-annotation-ground{background:#201e1d;padding:28px}.ds-annotation{display:inline-block;font:12px/1.4 \"IBM Plex Mono\",monospace;color:#fff0df;background:#201e1deb;padding:3px 6px;border-bottom:1px solid #ffc59e;white-space:nowrap}"
+      "description": "Narrow-screen pattern: authored-width vector text, contained scroll and visible hint.",
+      "html": "<div class=\"ds-diagram\"><p>Scroll across to explore the diagram.</p><div class=\"ds-scroll\" tabindex=\"0\" aria-label=\"Database diagram; scroll horizontally\"><svg viewBox=\"0 0 600 425\" role=\"img\" aria-label=\"Selected parse-tree branches\"><path d=\"M300 92v48H110v54m190-54h190v54\" fill=\"none\" stroke=\"#b0c0a4\"/><rect x=\"224\" y=\"54\" width=\"152\" height=\"38\" rx=\"5\" fill=\"#edf3e6\" stroke=\"#6d9155\"/><rect x=\"46\" y=\"194\" width=\"128\" height=\"38\" rx=\"5\" fill=\"white\" stroke=\"#b0c0a4\"/><rect x=\"422\" y=\"194\" width=\"136\" height=\"38\" rx=\"5\" fill=\"white\" stroke=\"#b0c0a4\"/><text x=\"300\" y=\"78\">SelectStmt</text><text x=\"110\" y=\"218\">targetList</text><text x=\"490\" y=\"218\">whereClause</text></svg></div></div>",
+      "css": ".ds-diagram{max-width:350px;background:#fdfefa;color:var(--ink,#26352e)}.ds-diagram p{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;font-size:11px;color:var(--muted,#617168);padding:10px 17px 0}.ds-scroll{overflow-x:auto;padding:0 6px 8px;scrollbar-width:thin;scrollbar-color:#c6d1c4 transparent}.ds-scroll svg{display:block;width:600px;min-width:600px;height:425px}.ds-scroll text{font-family:var(--code,'IBM Plex Mono',monospace);font-size:12px;text-anchor:middle;fill:#2f3e32}"
     }
   ],
   "narrative": {
-    "northStar": "The Database Engine Workshop",
-    "overview": "A quiet slate-blue workbench surrounds a separate charcoal mechanical illustration. White editing and assessment surfaces keep real SQL work readable; the exploded engine supplies depth and cinematic attention inside the lesson.\n\nThe journey uses local Space Grotesk and IBM Plex Mono, warm copper light, and ivory text. Six mechanically distinct chambers are inspectable as SQL text, parser, analyzer, rewriter, planner and executor. The assembly is a teaching metaphor; measured query evidence belongs to the workbench.",
+    "northStar": "The Quiet Database Atlas",
+    "overview": "Paper, pine-green accents and precise vector drawings create a restrained study surface. Space Grotesk gives headings a clear technical voice, native sans supports reading, and IBM Plex Mono identifies SQL and database structures. The Japanese-inspired restraint is expressed through spacing, rules and limited color.\n\nThe lesson and practice share one visual world. Database illustrations show concrete structures and retain an explicit illustration label; real query results remain in the practice surface.",
     "keyCharacteristics": [
-      "Slate-blue application chrome and white work surfaces.",
-      "Scoped charcoal machinery, copper edges and ivory annotations.",
-      "Real geometry with distinct internal structures for each stage.",
-      "One shared scene for interactive exploration and frame-driven video."
+      "Pale paper, white working surfaces and pine-green selection.",
+      "A connected prompt, SQL editor, action row and results surface.",
+      "Inspectable database diagrams with crisp vector text.",
+      "Shared deterministic timing for exploration and narrated video."
     ],
     "rules": [
       {
-        "name": "Scoped World",
-        "body": "Keep the charcoal/copper palette inside the journey and its video. The surrounding workbench retains its slate-blue/white system.",
+        "name": "The Shared Paper Rule",
+        "body": "Keep the lesson, illustration and practice in the same paper-and-pine world.",
         "section": "colors"
       },
       {
-        "name": "Readable Annotation",
-        "body": "Render selected-stage labels as projected DOM text using the annotation roles; keep source names and input/output contracts readable outside the 3D canvas.",
-        "section": "typography"
-      },
-      {
-        "name": "Illustrated Evidence",
-        "body": "Keep the “Illustrated mechanism” label visible. Geometry, signal packets and camera motion do not represent a measured PostgreSQL trace.",
+        "name": "The Illustrated Evidence Rule",
+        "body": "Keep “Illustrated mechanism” visible and distinguish the drawing from PostgreSQL estimates and measured execution.",
         "section": "elevation"
       }
     ],
     "dos": [
-      "Do retain the workbench palette and UI typography around the scoped cinematic journey.",
-      "Do use different internal structures for the six engine stages; the shared casing is the metaphor.",
-      "Do pair each inspection view with its input/output contract and text explanation.",
-      "Do preserve Overview, keyboard stage selection, pause/reduced-motion behavior and the graphics fallback.",
-      "Do distinguish illustrated mechanisms from PostgreSQL estimates and measured execution."
+      "Do keep prompts, editing, query actions and results together.",
+      "Do put practice first when the workbench stacks.",
+      "Do preserve readable diagram labels with contained horizontal exploration on mobile.",
+      "Do retain Overview, stage selection, pause, reduced motion and persistent text explanations.",
+      "Do distinguish illustrations, estimates and measured execution."
     ],
     "donts": [
-      "Don’t extend the journey’s charcoal/copper treatment across the entire application.",
-      "Don’t replace sharp DOM source annotations with rasterized text on geometry.",
-      "Don’t add invented execution timings or measured row counts to the illustration.",
-      "Don’t give video labels or rotors an independent animation clock."
+      "Don't reintroduce slate-blue chrome or charcoal-and-copper machinery.",
+      "Don't add decorative Japanese glyphs, fake wood, turbines or bolts.",
+      "Don't shrink mobile diagrams until their source labels become unreadable.",
+      "Don't invent execution timings or measured row counts in illustrations.",
+      "Don't give video elements an independent animation clock."
     ]
   }
 }

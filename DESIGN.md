@@ -1,229 +1,206 @@
 ---
-name: "SQL Internals Academy"
-description: "A quiet SQL workbench with an illustrated mechanical journey inside PostgreSQL."
+name: "SQL Internals Academy / insideSQL"
+description: "A quiet paper-and-pine workbench for exploring PostgreSQL through SQL practice."
 colors:
-  ink: "#23344d"
-  blue: "#2459b8"
-  blue-hover: "#19499e"
-  muted: "#718097"
-  line: "#dce3ed"
-  workbench-ground: "#eef2f8"
-  workbench-surface: "#ffffff"
-  sidebar-ground: "#e5ebf4"
-  button-hover: "#edf3ff"
-  focus: "#8aabeb"
-  engine-ground: "#201e1d"
-  engine-copy: "#fff0df"
-  engine-muted: "#c7b9ab"
-  engine-accent: "#ffc59e"
-  engine-panel: "#292624"
-  engine-border: "#55504b"
-  engine-hover: "#403932"
-  engine-graphite: "#4c4946"
-  engine-steel: "#8b8179"
-  engine-edge: "#161312"
-  caption-ground: "#181615"
+  ink: "#26352e"
+  accent: "#365e4b"
+  accent-hover: "#284c3a"
+  muted: "#617168"
+  line: "#dce3da"
+  paper: "#f7f8f4"
+  surface: "#ffffff"
+  soft: "#edf2eb"
+  sidebar: "#f0f3ed"
+  focus: "#577d66"
+  diagram-ground: "#fdfefa"
+  diagram-ink: "#2f3e32"
+  diagram-line: "#b0c0a4"
+  diagram-green: "#6d9155"
+  diagram-soft: "#edf3e6"
 typography:
   body:
     fontFamily: "-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif"
     fontSize: "14px"
   headline:
-    fontFamily: "-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif"
-    fontSize: "30px"
-    fontWeight: 600
-    letterSpacing: "-1px"
-  workbench-label:
-    fontFamily: "-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif"
-    fontSize: "12px"
-  engine-title:
     fontFamily: "'Space Grotesk', sans-serif"
-    fontSize: "clamp(23px, 2.2vw, 32px)"
+    fontSize: "clamp(23px, 2.05vw, 30px)"
     fontWeight: 500
     lineHeight: 1.2
-    letterSpacing: "-1px"
-  engine-body:
+    letterSpacing: "-0.9px"
+  title:
     fontFamily: "'Space Grotesk', sans-serif"
+    fontSize: "21px"
+    fontWeight: 500
+    lineHeight: 1.3
+    letterSpacing: "-0.5px"
+  prompt:
+    fontFamily: "-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif"
     fontSize: "12px"
-    lineHeight: 1.7
+    lineHeight: 1.75
   sql:
-    fontFamily: "ui-monospace, SFMono-Regular, Menlo, monospace"
-    fontSize: "14px"
-  engine-annotation:
     fontFamily: "'IBM Plex Mono', monospace"
     fontSize: "12px"
-    lineHeight: 1.4
+    lineHeight: 1.85
+  diagram-annotation:
+    fontFamily: "'IBM Plex Mono', monospace"
+    fontSize: "11px"
   video-title:
     fontFamily: "'Space Grotesk', sans-serif"
-    fontSize: "54px"
+    fontSize: "43px"
     fontWeight: 500
     lineHeight: 1.2
-    letterSpacing: "-2px"
-  video-annotation:
-    fontFamily: "'IBM Plex Mono', monospace"
-    fontSize: "20px"
-    lineHeight: 1.4
   video-caption:
     fontFamily: "'Space Grotesk', sans-serif"
-    fontSize: "28px"
-    lineHeight: 1.45
+    fontSize: "24px"
+    lineHeight: 1.5
 rounded:
-  button: "6px"
-  panel: "10px"
-  chapter: "8px"
-  engine-control: "2px"
-  circle: "50%"
+  control: "6px"
+  panel: "9px"
+  stage: "4px"
+  diagram-node: "5px"
+  label: "3px"
 spacing:
-  compact: "6px"
-  control-gap: "8px"
-  panel-inset: "18px"
-  workbench-gap: "22px"
-  engine-inset: "28px"
-  main-inset: "32px 36px"
+  exercise-gap: "6px"
+  workbench-gap: "25px"
+  main-inset: "29px 32px 38px"
+  mobile-inset: "22px 16px 30px"
 components:
   button-primary:
-    backgroundColor: "{colors.blue}"
-    textColor: "{colors.workbench-surface}"
-    rounded: "{rounded.button}"
-    padding: "7px 11px"
+    backgroundColor: "{colors.accent}"
+    textColor: "{colors.surface}"
+    rounded: "{rounded.control}"
+    padding: "8px 9px"
   button-primary-hover:
-    backgroundColor: "{colors.blue-hover}"
+    backgroundColor: "{colors.accent-hover}"
   button-secondary:
-    backgroundColor: "{colors.workbench-surface}"
     textColor: "{colors.ink}"
-    rounded: "{rounded.button}"
+    rounded: "{rounded.control}"
     padding: "8px 12px"
   button-secondary-hover:
-    backgroundColor: "{colors.button-hover}"
-  workbench-panel:
-    backgroundColor: "{colors.workbench-surface}"
+    backgroundColor: "{colors.soft}"
+  lesson-panel:
+    backgroundColor: "{colors.surface}"
     textColor: "{colors.ink}"
     rounded: "{rounded.panel}"
   chapter-active:
-    backgroundColor: "{colors.workbench-surface}"
-    textColor: "{colors.blue}"
-    rounded: "{rounded.chapter}"
-    padding: "13px 8px"
+    backgroundColor: "{colors.surface}"
+    textColor: "{colors.ink}"
+    rounded: "{rounded.control}"
+    padding: "11px 10px"
   sql-editor:
+    backgroundColor: "{colors.surface}"
     typography: "{typography.sql}"
-    height: "210px"
-  engine-stage:
-    textColor: "{colors.engine-muted}"
-    rounded: "{rounded.engine-control}"
-    padding: "7px 9px"
-  engine-stage-active:
-    backgroundColor: "{colors.engine-accent}"
-    textColor: "{colors.engine-ground}"
-  engine-annotation:
-    backgroundColor: "#201e1deb"
-    textColor: "{colors.engine-copy}"
-    typography: "{typography.engine-annotation}"
-    padding: "3px 6px"
+    height: "224px"
+  stage-control:
+    textColor: "#68795a"
+    rounded: "{rounded.stage}"
+    padding: "6px 7px"
+  stage-control-active:
+    backgroundColor: "#e9f1e1"
+    textColor: "#3f6130"
   illustration-label:
-    textColor: "{colors.engine-muted}"
-    padding: "5px 8px"
+    backgroundColor: "#f5f9ef"
+    textColor: "#617554"
+    rounded: "{rounded.label}"
+    padding: "4px 6px"
 ---
 
-# Design System: SQL Internals Academy
+# Design System: SQL Internals Academy / insideSQL
 
 ## Overview
 
-**Creative North Star: "The Database Engine Workshop"**
+**Creative North Star: "The Quiet Database Atlas"**
 
-A quiet slate-blue workbench surrounds a separate charcoal mechanical illustration. White editing and assessment surfaces keep real SQL work readable; the exploded engine supplies depth and cinematic attention inside the lesson.
+Paper, pine-green accents and precise vector drawings create a restrained study surface. Space Grotesk gives headings a clear technical voice, native sans supports reading, and IBM Plex Mono identifies SQL and database structures. The Japanese-inspired restraint is expressed through spacing, rules and limited color.
 
-The journey uses local Space Grotesk and IBM Plex Mono, warm copper light, and ivory text. Six mechanically distinct chambers are inspectable as SQL text, parser, analyzer, rewriter, planner and executor. The assembly is a teaching metaphor; measured query evidence belongs to the workbench.
+The lesson and practice share one visual world. Database illustrations show concrete structures and retain an explicit illustration label; real query results remain in the practice surface.
 
 **Key Characteristics:**
-- Slate-blue application chrome and white work surfaces.
-- Scoped charcoal machinery, copper edges and ivory annotations.
-- Real geometry with distinct internal structures for each stage.
-- One shared scene for interactive exploration and frame-driven video.
+- Pale paper, white working surfaces and pine-green selection.
+- A connected prompt, SQL editor, action row and results surface.
+- Inspectable database diagrams with crisp vector text.
+- Shared deterministic timing for exploration and narrated video.
 
-Recorded from `web/src/style.css`, `DatabaseEngine.ts`, `QueryJourney.tsx`, `App.tsx`, `SqlEditor.tsx` and `engineMotion.ts` after the cinematic correction pass. `docs/CINEMATIC-DIRECTION.md` supplies the established direction; implementation determines the tokens above.
+Recorded from the finished `web/src/style.css`, `App.tsx`, `SqlEditor.tsx`, `DatabaseDiagram.tsx`, `QueryJourney.tsx` and `engineMotion.ts`; direction and review live in `artifacts/atlas-redesign/direction.md` and `docs/reviews/atlas-design.md`.
 
 ## Colors
 
 ### Primary
 
-Workbench Blue marks Run, Check, selected lesson tabs, current exercises and progress. Its deeper hover companion gives a modest interaction change. Warm Copper is the journey's scoped accent: selected stages, source labels, emissive traces and rim light.
+Pine Accent identifies Check, current exercises, selected tabs and progress. Accent Hover deepens primary controls. The diagram's lighter green and soft fills highlight branches, catalog rows, buffers and tuple slots within the same palette.
 
 ### Neutral
 
-Deep Ink, Muted Slate and Line organize text and separators on white Workbench Surface, pale Workbench Ground and Sidebar Ground. Inside the journey, Engine Ground and Panel anchor Ivory Copy, Warm Muted Copy and Machined Border. Graphite, Steel and Edge are actual 3D material colors, separate from the interface palette. Caption Ground provides the video subtitle band.
+Paper surrounds white Surface panels. Sidebar and Soft provide gentle grouping; Ink, Muted and Line establish readable hierarchy. The diagram uses its own near-white ground, ink and ruled edges. Error and grade feedback retain their implemented red, amber and green state treatments, accompanied by text.
 
-**The Scoped World Rule.** Keep the charcoal/copper palette inside the journey and its video. The surrounding workbench retains its slate-blue/white system.
+**The Shared Paper Rule.** Keep the lesson, illustration and practice in the same paper-and-pine world.
 
 ## Typography
 
-The workbench uses the operating system sans stack. CodeMirror and SQL results use the system monospace stack. Locally imported Space Grotesk supplies journey titles and explanatory text; IBM Plex Mono supplies SQL, catalog, syntax-node and operator annotations.
+Locally imported Space Grotesk supplies identity and headings; the operating-system sans stack supplies prose and controls. IBM Plex Mono supplies code, data and SVG labels. The frontmatter records the recurring roles, not every compact caption.
 
-The frontmatter records the built hierarchy. Workbench headings step down to 25px at the medium breakpoint and 24px on narrow screens. Journey titles are fluid on desktop and 25px below 600px. Video uses its own larger title, annotation and caption roles. Source annotations remain 12px in desktop and mobile interactive views, and 20px in video; they are projected DOM elements rather than texture text.
+Chapter headings become 26px below 980px and 25px below 650px. The prompt stays comfortably spaced and capped at 68ch. SQL text becomes 11px on narrow screens. Drawing text has an 11-unit minimum in its authored SVG; prominent SQL text is larger. Video enlarges headings, contracts and captions for its separate output dimensions.
 
-**The Readable Annotation Rule.** Render selected-stage labels as projected DOM text using the annotation roles; keep source names and input/output contracts readable outside the 3D canvas.
-
-Existing 9–11px auxiliary controls and metadata describe the current compact UI; they are not a new minimum-size recommendation for future screens.
+Existing 8–10px badges, controls and metadata describe this compact implementation; they are not a recommended minimum for new prose.
 
 ## Layout
 
-The desktop application uses a sticky 236px sidebar, a 70px header and a centered main region capped at 1700px. The workbench splits into a flexible lesson/editor column (minimum 450px) and a 340px exercise panel, separated by the workbench-gap token.
+Desktop uses a sticky 216px curriculum rail, a 62px header and a main region capped at 1820px. The workbench pairs a lesson column (`minmax(340px, .92fr)`) with a larger practice column (`minmax(425px, 1.08fr)`). Prompt, editor, Run/Explain/Analyze/Check and results form one connected surface.
 
-At 1250px, sidebar width becomes 210px, the exercise column 300px and grid gap 16px. At 1000px, the sidebar becomes 185px and the workbench becomes one column, with exercises above the lesson. At 650px, the sidebar hides, header height becomes 55px and main padding becomes 20px 14px.
+At 1190px, the rail and gaps narrow. At 980px, the workbench becomes one column with practice first. At 650px, curriculum becomes a disclosed fixed rail beneath the sticky 54px header; query actions can wrap. At 1600px and above, the workbench gap expands to 34px and the editor height grows to 262px. The editor is 205px tall below 650px.
 
-The journey is a flex column with a title, expanding canvas and readable text contract. Its desktop minimum height is 620px; below 600px it becomes 675px with a 300px minimum canvas. Stage controls wrap. On narrow-aspect overview views the assembly rotates into a steeper diagonal; stage inspection expands chamber spacing and focuses the selected mechanism. Details stack on mobile rather than squeezing side-by-side. Video uses 64px horizontal insets and a separate 144px caption band.
+On narrow screens, the interactive drawing retains its authored 600px × 425px size inside a local horizontal scroller. The visible scroll hint and keyboard-focusable viewport make exploration discoverable; page width stays contained. The motion control stays at the visible edge. Video uses separate fitted drawing and caption layouts.
 
 ## Elevation & Depth
 
-The workbench is chiefly flat: borders, pale header fills and white surfaces separate content. Its selected chapter carries a subtle ambient shadow (`0 2px 6px #314a7210`). The engine instead uses genuine procedural Three.js geometry, orthographic projection, outlined edges and physically shaded materials. Graphite casing uses roughness 0.64/metalness 0.25; darker internals use 0.76/0.15; steel uses 0.45/0.35. Warm, cool and copper directional lights describe chambers, rails, screws and internals. ACES filmic tone mapping at exposure 1.05 shapes the final rendered color; material swatches are source colors, not screenshot samples.
+White surfaces, fine rules and pale fills provide most separation. Selected chapters use a small shadow (`0 2px 5px #253e2210`); selected result switches use `0 1px 3px #31472114`. The mobile curriculum overlays content with `8px 0 25px #233b2218`. Avoid turning the main surfaces into floating cards.
 
-Parser node collars, mounts and screws give the syntax tree physical structure. Planner route pods, pins and selector housing give alternate paths mechanical depth. Camera inspection dims unselected material and highlights the selected chamber without replacing the scene.
-
-The depth pass adds bevelled front/back flanges, toothed bezels, bolted cutaway jackets and cooling fins to each chamber. SQL guide rails and contact traces, geared syntax collars, catalog drawer handles/backplanes, rewrite gate teeth, planner cooling ribs/gears and heap-board connectors supply distinct internal detail. Feed wafers, syntax cores, catalog drawers, rewrite gates, selector gears and the executor read head use the same deterministic frame clock. Settled inspection isolates the chosen chamber; Overview restores its neighbours and connecting rails.
-
-**The Illustrated Evidence Rule.** Keep the “Illustrated mechanism” label visible. Geometry, signal packets and camera motion do not represent a measured PostgreSQL trace.
-
-Camera transitions use Anime.js outExpo across 1.6 seconds. Theatre supplies seekable progression; interactive controls can pause and reduced motion settles inspection immediately. Remotion supplies the sole video frame clock. These extension tokens are recorded in the sidecar.
+SVG drawings use offset table sheets, stacked heap-page cutaways and restrained side-face tones. Motion highlights structures and crossfades between views. Theatre provides seekable progression and Anime supplies the 1.6-second outExpo stage blend; Remotion supplies the video frame clock. Pause freezes the interactive view, while reduced motion freezes activity and settles stage selection immediately.
 
 ## Shapes
 
-Workbench panels have gently curved panel corners; buttons use the smaller button radius and chapters the intermediate chapter radius. Exercise selectors are circular. Journey stage controls use nearly square corners and thin machined borders. The canvas assembly uses rings, angular blocks, tubes and bolted housings rather than flattened interface cards. Geometry is an illustration device, not a new application-wide container language.
+Panels use gentle corners; compact controls are slightly tighter. Exercise selectors are rounded squares with checkmarks for passes. Stage controls and the illustration label use smaller corners. Diagram nodes are ruled rectangles, catalog tables have aligned rows, and heap pages form a layered cutaway. These shapes explain database structure.
 
 ## Components
 
 ### Buttons
 
-Workbench actions use the blue primary and white secondary variants. Hover colors come from their sibling tokens. A 3px blue focus outline with 3px offset marks keyboard focus. Disabled controls retain their native disabled state and muted text. Check spans the exercise width; Run stays compact.
+Check uses the pine primary treatment; Run uses a white outlined treatment and adjacent secondary actions remain quiet. Controls share restrained hover transitions, disabled opacity and explicit keyboard focus: a 2px green outline offset by 3px. Preserve Cancel and busy-state labels when executing a query.
 
 ### Navigation
 
-Selected lesson tabs use a blue underline and stronger text. Active chapter navigation uses white fill, blue text and the subtle chapter shadow. Locked future chapters are disabled. Six circular exercise controls distinguish current and passed states with color plus position/checkmark.
+Lesson tabs use pine text and an underline for selection. Active chapters use white fill, a fine border and the small chapter shadow. Six exercise selectors distinguish the current exercise from passes using fill, position and checkmarks. The mobile curriculum toggle keeps the rail reachable.
 
 ### Cards / Containers
 
-Lesson, editor and exercise containers use white fill, line borders, panel corners and clipped edges. Pale header bands and compact inset spacing divide functional areas; these are working surfaces rather than ornamental floating cards.
+The exercise prompt has rounded upper corners; the adjoining editor/results surface has rounded lower corners. Their shared border reads as one work area. Lesson tabs and lesson content use the same joined construction. Table headers, utility disclosures and editor headers use subtle tonal bands.
 
 ### Inputs / Fields
 
-SQL input is the installed CodeMirror editor, 210px tall with wrapping, PostgreSQL syntax and monospace text. It becomes read-only while a query is busy. The sidecar shows a static textarea sample of the editor surface for preview only; it does not replace CodeMirror's behavior.
+CodeMirror supplies PostgreSQL syntax, line wrapping and the accessible SQL input. The editor uses a white ground, pale active line, green caret and selection, muted line numbers and restrained syntax colors. It becomes read-only while busy. The sidecar's textarea is a visual preview, not a replacement editor.
 
 ### Chips
 
-The illustrated-mechanism badge uses IBM Plex Mono, a thin engine border and compact padding. It is a disclosure rather than an action. Retain it beside the journey title, allowing it to fall below the title on mobile.
+“Illustrated mechanism” is a compact, noninteractive disclosure with a fine border and pale fill. Keep it visible beside or below the diagram title.
 
-### Database Engine Journey
+### Database Atlas
 
-Overview reveals all six chambers; stage controls inspect one. Each chamber has distinct geometry and actual lesson names: SQL slats, mounted parser nodes, analyzer catalog banks, rewrite gates, planner selector routes and executor pages. Stage controls use copper fill when pressed and copper focus outlines. Projected annotations are noninteractive and shown only for the selected stage; accessible canvas naming and persistent text details complement them. WebGL failure retains the controls and explanations. Pause is available in interactive views; reduced motion disables the pause action with an explicit state label.
+Overview and six stages reveal SQL tokens, parse-tree branches, catalog tables, query rewriting, competing scan paths, buffers and heap pages. SVG text stays crisp. Persistent input/output contracts and explanations complement the drawing; stage buttons expose their pressed state. The mobile scroller is focusable and retains the browser's native focus treatment; other controls use the explicit focus ring above.
+
+**The Illustrated Evidence Rule.** Keep “Illustrated mechanism” visible and distinguish the drawing from PostgreSQL estimates and measured execution.
 
 ## Do's and Don'ts
 
 ### Do:
-- Do retain the workbench palette and UI typography around the scoped cinematic journey.
-- Do use different internal structures for the six engine stages; the shared casing is the metaphor.
-- Do pair each inspection view with its input/output contract and text explanation.
-- Do preserve Overview, keyboard stage selection, pause/reduced-motion behavior and the graphics fallback.
-- Do distinguish illustrated mechanisms from PostgreSQL estimates and measured execution.
+- Do keep prompts, editing, query actions and results together.
+- Do put practice first when the workbench stacks.
+- Do preserve readable diagram labels with contained horizontal exploration on mobile.
+- Do retain Overview, stage selection, pause, reduced motion and persistent text explanations.
+- Do distinguish illustrations, estimates and measured execution.
 
 ### Don't:
-- Don’t extend the journey’s charcoal/copper treatment across the entire application.
-- Don’t replace sharp DOM source annotations with rasterized text on geometry.
-- Don’t add invented execution timings or measured row counts to the illustration.
-- Don’t give video labels or rotors an independent animation clock.
+- Don't reintroduce slate-blue chrome or charcoal-and-copper machinery.
+- Don't add decorative Japanese glyphs, fake wood, turbines or bolts.
+- Don't shrink mobile diagrams until their source labels become unreadable.
+- Don't invent execution timings or measured row counts in illustrations.
+- Don't give video elements an independent animation clock.

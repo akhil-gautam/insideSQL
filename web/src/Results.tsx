@@ -16,7 +16,7 @@ function PlanGraph({plan}:{plan:PlanNode}){
       const id=String(nodes.length);operations.push({id,plan:operation});
       const measured=operation['Actual Rows']!==undefined;
       const label=`${operationTitle(operation)}\nEstimated rows: ${operation['Plan Rows']??'—'}${measured?`\nActual rows: ${operation['Actual Rows']} · loops: ${operation['Actual Loops']??'—'}`:''}`;
-      const target:Node={id,data:{label},sourcePosition:Position.Top,targetPosition:Position.Bottom,position:{x:0,y:depth*160},style:{width:200,fontSize:12,padding:12,border:'1px solid #bbcae0',borderRadius:8,whiteSpace:'pre-line'}};
+      const target:Node={id,data:{label},sourcePosition:Position.Top,targetPosition:Position.Bottom,position:{x:0,y:depth*160},style:{width:200,fontSize:12,padding:12,border:'1px solid #bbccb0',color:'#354a2e',background:'#ffffff',borderRadius:8,whiteSpace:'pre-line'}};
       nodes.push(target);
       if(parent)edges.push({id:`${parent}-${id}`,source:id,target:parent,markerEnd:{type:MarkerType.ArrowClosed}});
       const xs=(operation.Plans||[]).map(child=>walk(child,depth+1,id));
@@ -28,7 +28,7 @@ function PlanGraph({plan}:{plan:PlanNode}){
   // Equal-size replacements do not trigger ResizeObserver again.
   useEffect(()=>setFlowNodes(previous=>nodes.map(n=>({...n,measured:previous.find(p=>p.id===n.id)?.measured}))),[nodes,setFlowNodes]);
   const current=operations.find(n=>n.id===selected)||operations[0];
-  return <><div className="plan-graph"><ReactFlow nodes={flowNodes.map(n=>({...n,selected:n.id===current.id}))} onNodesChange={onNodesChange} edges={edges} onNodeClick={(_,node)=>setSelected(node.id)} fitView nodesDraggable={false} nodesConnectable={false} deleteKeyCode={null} aria-label="Execution plan graph"><Background gap={20} color="#e1e7f0"/><Controls showInteractive={false}/></ReactFlow></div><section className="operation-inspector" aria-label="Selected plan operation"><label>Inspect a plan operation<select value={current.id} onChange={e=>setSelected(e.target.value)}>{operations.map(n=><option key={n.id} value={n.id}>{Number(n.id)+1}. {operationTitle(n.plan)}</option>)}</select></label><h3>{current.plan['Node Type']}</h3><OperationDetails plan={current.plan}/></section></>;
+  return <><div className="plan-graph"><ReactFlow nodes={flowNodes.map(n=>({...n,selected:n.id===current.id}))} onNodesChange={onNodesChange} edges={edges} onNodeClick={(_,node)=>setSelected(node.id)} fitView nodesDraggable={false} nodesConnectable={false} deleteKeyCode={null} aria-label="Execution plan graph"><Background gap={20} color="#dce5d2"/><Controls showInteractive={false}/></ReactFlow></div><section className="operation-inspector" aria-label="Selected plan operation"><label>Inspect a plan operation<select value={current.id} onChange={e=>setSelected(e.target.value)}>{operations.map(n=><option key={n.id} value={n.id}>{Number(n.id)+1}. {operationTitle(n.plan)}</option>)}</select></label><h3>{current.plan['Node Type']}</h3><OperationDetails plan={current.plan}/></section></>;
 }
 function PlanTree({plan}:{plan:PlanNode}){return <li><details open><summary>{operationTitle(plan)}</summary><OperationDetails plan={plan}/>{plan.Plans&&<ul>{plan.Plans.map((child,i)=><PlanTree key={i} plan={child}/>)}</ul>}</details></li>;}
 export function Results({result}:{result:QueryResult|null}){

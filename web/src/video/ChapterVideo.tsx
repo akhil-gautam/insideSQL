@@ -9,7 +9,7 @@ export function ChapterVideo(){
  const caption=narration.captions.find(c=>time>=c.start&&time<c.end);
  const index=Math.max(0,transitions.reduce((last,c,i)=>c.start<=time?i:last,0));const transition=transitions[index];
  const stage=stagesBySection[transition.section];const previous=index===0?-1:stagesBySection[transitions[index-1].section];
- return <AbsoluteFill style={{background:'#201e1d',color:'#fff0df'}}>
+ return <AbsoluteFill style={{background:'#fdfefa',color:'#26352e'}}>
   <Audio src={staticFile('media/01/narration.m4a')}/>
   <div style={{flex:1,minHeight:0}}><QueryJourney frame={frame} fps={fps} stage={stage} previousStage={previous} stageStartFrame={Math.round(transition.start*fps)} video/></div>
   <div className="video-stage-strip" aria-hidden>{Array.from({length:6},(_,i)=><span key={i} className={stage===i?'active':''}/>)}</div>

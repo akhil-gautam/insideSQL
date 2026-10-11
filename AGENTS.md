@@ -23,7 +23,7 @@ Never count an outline as an authored chapter, or an unpublished draft as delive
 | `crates/academy-core/` | Rust service, PostgreSQL runtime/reset, fixtures, grading, cancellation, resources and SQLite progress |
 | `src-tauri/` | Tauri 2 desktop bridge, application policy and packaging |
 | `web/src/` | React 19/TypeScript/Vite workbench; CodeMirror editor, React Flow plans, TanStack results and Radix controls |
-| `web/src/DatabaseEngine.ts`, `engineMotion.ts`, `journey.ts`, `QueryJourney.tsx` | Three.js machinery, Anime.js easing and Theatre progression |
+| `web/src/DatabaseDiagram.tsx`, `engineMotion.ts`, `journey.ts`, `QueryJourney.tsx` | SVG database structures, Anime.js easing and Theatre progression |
 | `web/src/video/` | Remotion compositions and shared replay/lesson scenes |
 | `course/chapterNN.json` | Authored contiguous chapter catalog, exercises, references and transcripts |
 | `course/fixtures/`, `course/theatre/` | Synthetic SQL fixtures and exported Theatre state |
@@ -36,10 +36,10 @@ The Rust core uses Tokio, tokio-postgres, rusqlite, Serde and exact numeric hand
 
 - Chapter 1 is delivered with a narrated 1080p lesson, captions/transcript and six working exercises.
 - Chapters 2–10 are authored, with 54 more exercises, but unpublished and unavailable to learners. Chapters 11–84 still need authoring; 83 chapter videos remain.
-- The cinematic journey has six detailed mechanical chambers, selectable inspection, shared replay, pause, reduced-motion handling and graphics fallback.
+- The journey has six inspectable SVG database diagrams, shared deterministic replay, pause and reduced-motion handling. Paper/green styling joins the prompt, editor, actions and results; narrow screens put practice first.
 - Real SQL, typed grading across fixture variants, write-state assessment, cancellation, draft persistence, plan inspection and lab-resource snapshots work.
 - Reset has durable interruption reconciliation and generation-bound measurement evidence. Runtime ownership rejects competing launches and shutdown targets the exact owned child.
-- Latest recorded checks: 64 core/PostgreSQL, 23 frontend and 11 browser checks pass. This is increment evidence, not complete-course acceptance.
+- Latest recorded checks: 64 core/PostgreSQL, 23 frontend and 12 browser checks pass. This is increment evidence, not complete-course acceptance.
 - Open: intermittent missing graph edge, stale-marker/live-orphan recovery, watchdogs/calibration/heavy profiles, assessment leftovers, remaining fixture domains, privileged inspection/scenarios, curriculum/media and cross-platform delivery.
 - Phase 1 external Claude review is pending specific source-transfer approval after an automatic rejection. No source was sent; this is not nonresponse. Mass video production remains gated.
 

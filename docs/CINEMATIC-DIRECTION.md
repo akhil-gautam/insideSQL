@@ -1,3 +1,5 @@
+> Historical direction. Superseded on October 11, 2026 by the database-atlas redesign in [DESIGN.md](../DESIGN.md). Retained as design history; do not rebuild this discarded mechanical style.
+
 # Database engine illustration
 
 Scope: replace the chapter-one mechanism illustration and its shared Remotion rendering. Preserve the SQL workbench, grading, progress and measured plan explorer.

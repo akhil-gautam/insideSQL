@@ -81,6 +81,7 @@ test('an unlocked chapter uses its own lesson, counters and saved drafts',async(
   expect(second.hasAttribute('disabled')).toBe(false);
   fireEvent.click(screen.getByRole('button',{name:'Continue to chapter 2'}));
   expect(screen.getByRole('heading',{name:chapter02.title})).toBeTruthy();
+  fireEvent.click(screen.getByRole('tab',{name:'Watch lesson'}));
   expect(screen.getByLabelText('Chapter 2 narrated lesson').getAttribute('src')).toBe('/media/02/chapter.mp4');
   expect(screen.getByRole('textbox',{name:'SQL query'}).textContent).toBe('');
   const draft='SELECT id FROM orders -- chapter two draft';
@@ -118,6 +119,7 @@ test('native video paths include the selected chapter under the shared media roo
   vi.stubGlobal('__TAURI_INTERNALS__',{convertFileSrc:(path:string)=>`asset://${path}`});
   start({nativeRoot:'/Application Resources/media'});
   fireEvent.click(await screen.findByRole('button',{name:/Chapter 2:/}));
+  fireEvent.click(screen.getByRole('tab',{name:'Watch lesson'}));
   expect(screen.getByLabelText('Chapter 2 narrated lesson').getAttribute('src')).toBe('asset:///Application Resources/media/02/chapter.mp4');
   expect(document.querySelector('track')?.getAttribute('src')).toBe('asset:///Application Resources/media/02/captions.vtt');
 });
