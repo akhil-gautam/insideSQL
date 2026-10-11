@@ -28,7 +28,7 @@ Goal: implement the entire docs/PLAN.md and request Claude review after each com
 
 ## Remaining scope
 
-- Chapters 2–84 remain undelivered. Chapters 2–5 have unpublished authored drafts and tested SQL exercises; chapters 3–5 use commerce fixtures. Other fixture domains/profiles, advanced lab mechanisms, production recovery/resource monitoring and cross-platform packaging remain unimplemented.
+- Chapters 2–84 remain undelivered. Chapters 2–10 have unpublished authored drafts: ten total chapters and60 exercises exist, leaving74 chapters/444 exercises to author and83 narrated videos to deliver. Orders/commerce fixture variants and partial recovery/resource foundations exist; the other six fixture domains, advanced lab mechanisms, further production recovery/monitoring and cross-platform delivery remain required.
 - This is a local development bundle; signing/notarization, redistribution notices and narration rights are release gates (docs/LICENSING.md).
 
 ## Decisions
@@ -199,3 +199,12 @@ Goal: implement the entire docs/PLAN.md and request Claude review after each com
 - Existing bundle-size warning and prior intermittent graph behavior remain open. Native GUI/cross-platform checks are not repeated for this runtime increment, and no installed bundle/server, fixture, grader, media or learner-facing interface changed. Further orphan/watchdog/resource/curriculum/media/platform requirements remain in the full active goal. Phase1 Claude source transfer remains blocked after automatic approval rejection, with no source sent; mass media remains gated.
 
 - Final uninstrumented browser11/11 passes in37.2s after the targeted-child change and removal of temporary diagnostics. A second full run had again failed the known missing edge; the diagnostic full run did not reproduce it, and no UI repair is claimed. The recorded postcommit complete core gate and fresh review remain pending.
+
+- Definitive postcommit core/PostgreSQL64/64 passes (51 unit335.33s, three catalog, eight progress and two runtime6.49s), with two explicitly invoked ignored crash helpers. Frontend23/23 and final uninstrumented browser11/11 pass:98 checks. Fresh local read-only review of e49aa94..63f423d finds no Critical/Important/Minor findings; no fixes or deferred minors. Every declined behavior/disposition is in docs/reviews/runtime-ownership.md.
+- Current isolated native QA bundle builds successfully; Cua still reports the Mac locked after the unlock reply, so this runtime increment has no new GUI lifecycle claim. Installed app/server remain untouched. The graph, stale-marker/orphan, watchdog/resource, curriculum/media and cross-platform gates stay open; full84/504 goal stays active.
+
+## insideSQL repository and project guide — 2026-10-11
+
+- The user requested current source publishing to github.com/akhil-gautam/insideSQL, then AGENTS.md and a rich README, with all final work pushed. The previously empty public repository received63f423d on main first. Local build/full-course tracks origin/main. No force-push, merge or PR was needed.
+- Expanded project AGENTS.md covers the app, stack, repository map, current10-chapter/60-exercise authored status, approved84/504 plan, safety/content/review rules and verification commands. README uses the insideSQL name, real engine/workbench images, learning loop, honest delivery inventory, roadmap, development setup and known release limits. Runtime/window/package naming is unchanged. Generated binaries/media and private labs/credentials remain ignored.
+- External Claude transfer remains separately blocked by automatic approval review; GitHub publishing authorization does not resolve that specific destination/data approval. No source was sent to Anthropic, and mass media production remains gated.

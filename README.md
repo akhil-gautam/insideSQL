@@ -1,28 +1,93 @@
-# SQL Internals Academy
+# insideSQL
 
-Lab resources opens an actual storage/settings snapshot for the current exercise. The owned runtime requires 512 MiB of available disk space before initialization, lab allocation, execution and Reset, and limits temporary spills to 128MB per PostgreSQL process. Reset prepares a fresh baseline before replacing the old database. These are preflight and spill safeguards, not total-memory quotas or hardware calibration; larger profiles, continuous monitoring and recovery/release checks remain required.
+**Understand the engine. Improve the query.**
 
-Measured-plan eligibility is bound to the actual owned PostgreSQL cluster and exercise database as well as SQL and grader revision. Progress and Check inspect the current lab identity, so old evidence cannot satisfy Check after database replacement even if deleting its SQLite record fails. Existing scripts, unlocks and passes are preserved; measurements saved before identity binding need Analyze again. Restarting the same cluster/database preserves current evidence. General interrupted Reset and orphan recovery remain required.
+Writing a query is only the beginning. The interesting part is what PostgreSQL does with it: the paths it considers, the rows it reads, the memory it uses, and the work it could have avoided.
 
-A native Tauri/Rust learning workbench with real, disposable PostgreSQL labs, Theatre.js mechanism scenes and Remotion chapter videos.
+insideSQL is a desktop course for people who already write basic SQL and want to get good at that part. Follow a statement through the engine, inspect a real execution plan, then write queries against a local PostgreSQL lab until they hold up across different datasets.
 
-The complete approved scope is [docs/PLAN.md](docs/PLAN.md). Verified delivery status is [docs/PROGRESS.md](docs/PROGRESS.md). The full course is **not complete**: chapter 1 is delivered, chapters 2–10 have unpublished authored drafts and tested SQL exercises, and later chapters remain to author.
+![The illustrated database engine, with six detailed mechanical layers](docs/images/database-engine.png)
 
-## Local macOS development
+The machine is an illustration of the query's journey. The execution plans and query results come from real PostgreSQL. Keeping those two things clearly labelled matters.
 
-Requires Rust, Node.js, Chrome, ffmpeg, macOS speech synthesis, and the relocatable PostgreSQL 18.3 build in Postgres.app. The learner-facing packaged app will bundle the PostgreSQL runtime and media and needs none of the authoring tools.
+## What a chapter feels like
+
+Watch a narrated lesson with captions. Pause, replay, or step inside the parser, analyzer, rewriter, planner and executor. Then move to the SQL editor beside it.
+
+Each chapter has six questions. You write the SQL yourself; the grader checks fresh fixture variants, including cases that the visible dataset might not reveal. A correct answer has to preserve the requested rows, duplicates, nulls and ordering. Write exercises also check the resulting database state.
+
+Solutions start collapsed and locked. Your first nonempty, learner-written Run or Check unlocks the explanation—even a syntax error counts as an attempt. Passing all six questions completes a chapter; the next one becomes available once its lesson is published. Retries are unlimited, and scripts and progress stay on your machine.
+
+<details>
+<summary>See the workbench</summary>
+
+![The local workbench: chapter video, SQL editor, exercise panel and PostgreSQL plan inspector](docs/images/workbench.png)
+
+</details>
+
+## Where it stands
+
+This is an early development build. The full course is still being made.
+
+| As of October 11, 2026 | Available |
+| --- | --- |
+| Delivered chapters | **1 of 84**, with narrated video, captions and six working exercises |
+| Authored chapters | **10**, containing **60 exercises**; chapters 2–10 remain unpublished |
+| Remaining writing | 74 chapters and 444 exercises |
+| Remaining chapter videos | 83 |
+| Native verification | Apple Silicon macOS; current-build playback, SQL, grading and progress have been exercised |
+
+The app already runs disposable PostgreSQL labs, saves drafts, cancels queries, grades across fresh variants, and separates `EXPLAIN` estimates from `EXPLAIN ANALYZE` measurements. The plan inspector has graph, tree and raw JSON views. Reset uses a durable journal, and measurement eligibility is tied to the actual lab generation. A second app instance cannot take over an owned workspace or stop its server.
+
+The latest recorded checks pass: **64 Rust/PostgreSQL, 23 frontend and 11 browser checks**. That does not mean the course is finished. An intermittent missing plan arrow remains unresolved, stale server markers currently block reopening, and resource watchdogs and broader recovery still need work. The latest isolated native build succeeds; its GUI recheck was blocked by the Mac lock state.
+
+The full [plan](docs/PLAN.md), dated [progress](docs/PROGRESS.md) and [review records](docs/reviews/) carry the details. Phase 1's external Claude review is pending source-transfer approval, so bulk video production has not started.
+
+## Where the course is going
+
+The curriculum begins with familiar SQL and follows it deeper into PostgreSQL:
+
+- **SQL and plans:** predicates, joins, aggregation, writes, scans, loops, timing and buffers.
+- **Storage and indexes:** heap pages, TOAST, visibility maps, B-trees, GIN, GiST, BRIN and index tradeoffs.
+- **Query design:** sargability, subqueries, CTEs, windows, recursion, temporal queries and fanout-safe aggregates.
+- **Planner and executor:** statistics, cardinality, costing, join search, rescans, memory, spills, parallelism and JIT.
+- **Concurrency and durability:** MVCC, locks, deadlocks, vacuum, WAL, checkpoints, replication and recovery.
+- **Production reasoning:** partitioning, observability, workload experiments and unfamiliar optimization incidents.
+
+The target is 84 chapters with 504 required exercises. Planned fixtures span commerce, SaaS tenants, equity lifecycles, event analytics, search, hierarchies and financial ledgers. Commerce and orders variants are implemented; the other domains and larger workload profiles still need building. All data is synthetic.
+
+## Under the hood
+
+| Part | Built with |
+| --- | --- |
+| Desktop shell | Tauri 2 with a Rust application core |
+| Database labs | App-managed PostgreSQL 18, Tokio, tokio-postgres |
+| Local progress | SQLite through rusqlite |
+| Workbench | React 19, TypeScript, Vite, CodeMirror, React Flow, TanStack Table, Radix |
+| Engine scenes | Three.js, Theatre.js and Anime.js |
+| Lessons and replay | Remotion and its player, local narration and timed captions |
+| Checks | Rust integration tests, Vitest/Testing Library and Playwright |
+
+Rust owns database lifecycle, credentials, restricted connections, assessment and progress. Learner SQL runs with limited privileges in disposable labs. The app does not attach to your existing PostgreSQL server. Animation and video share a frame clock so seeking restores the same scene.
+
+## Run it locally
+
+The supported development path today is **Apple Silicon macOS**. You need Node.js, Rust/Cargo, Python 3, Google Chrome, ffmpeg/ffprobe, macOS speech synthesis and the relocatable **Postgres.app PostgreSQL 18.3** runtime. Development used Node 24 and Rust 1.94.1; these are the tested versions, not a claim of minimum compatibility. Desktop builds also need the Xcode command-line tools.
 
 ```sh
+git clone https://github.com/akhil-gautam/insideSQL.git
+cd insideSQL
 npm ci
 npm run runtime:bundle
 python3 scripts/narrate.py
 npm run video:render
-npm run tauri -- build --debug --bundles app
 ```
 
-The desktop bundle is created under `target/debug/bundle/macos/`. App-owned PostgreSQL data and progress are separate from existing PostgreSQL installations. No Docker or existing server connection is used.
+The bundling script copies `bin`, `lib` and `share` from `/Applications/Postgres.app/Contents/Versions/18`. It never connects to that installation's databases. Set `ACADEMY_POSTGRES_SOURCE` if the pinned runtime lives elsewhere.
 
-For browser development, start the Rust test bridge in one terminal and Vite in another:
+Runtime binaries and generated lesson media are not committed. A fresh clone needs the steps above before it has a playable lesson or can package the desktop app. Narration and rendering currently produce chapter 1 only; rendering the full video takes time.
+
+For the browser workbench, keep these running in separate terminals:
 
 ```sh
 cargo run -p academy-core --bin preview
@@ -32,39 +97,44 @@ cargo run -p academy-core --bin preview
 npm run dev
 ```
 
-Open `http://127.0.0.1:1420`. The browser bridge is a local development tool; the desktop application calls Rust directly through Tauri.
+Open **http://127.0.0.1:1420**. The Rust bridge listens on loopback port 4318 and uses `.academy/preview` for its disposable data. `ACADEMY_HOME` and `ACADEMY_POSTGRES` can select a separate workspace and runtime.
 
-## Verification
+For a desktop development session:
 
 ```sh
-cargo test -p academy-core
+npm run tauri -- dev
+```
+
+Or build the local app bundle:
+
+```sh
+npm run tauri -- build --debug --bundles app
+```
+
+The bundle appears under `target/debug/bundle/macos/`, currently named `SQL Internals Academy.app`.
+
+## Check a change
+
+After bundling PostgreSQL:
+
+```sh
+ACADEMY_POSTGRES="$PWD/src-tauri/resources/postgres" cargo test -p academy-core -- --test-threads=1
 npm test
 npm run build
+```
+
+With the Rust bridge and Vite running, and Chrome installed:
+
+```sh
 npm run test:e2e
 ```
 
-The PostgreSQL tests create fresh temporary clusters. Set `ACADEMY_POSTGRES` to the bundled runtime directory to verify the distribution itself. Tests require permission to start local PostgreSQL shared-memory processes and loopback connections.
+Database tests start real temporary PostgreSQL clusters and need local process, shared-memory and loopback permissions. The two ignored crash-worker tests are invoked explicitly by their parent tests. A browser pass is useful evidence; native WebKit playback and lifecycle still need their own checks.
 
-The video renderer verifies repeated frame hashes before producing the complete 1080p H.264 lesson. English captions use the exact boundaries of independently validated narration clips. Generated media and runtime binaries are local build artifacts, not checked-in source.
+## Working on insideSQL
 
-## Learning contract
+[AGENTS.md](AGENTS.md) is the project guide. Start with [docs/PLAN.md](docs/PLAN.md) for scope, [docs/PROGRESS.md](docs/PROGRESS.md) for what has actually been verified, and [DESIGN.md](DESIGN.md) for the visual direction.
 
-- A first learner-written submission unlocks a collapsed answer, including invalid SQL.
-- Empty SQL, comments alone and unchanged starter SQL do not unlock answers.
-- All six exercises must pass across fresh fixture variants to complete the chapter.
-- Grading preserves duplicates, nulls, numeric values and specified row order.
-- Learner connections have no administrator or filesystem privileges.
-- Explain estimates and Analyze execution evidence are labeled separately.
-- Write exercises permit DML only on their authored disposable tables. Run retains successful changes; Analyze measures inside a rolled-back transaction; Check uses separate fresh learner/reference databases and verifies both returned rows and resulting state. Reset restores starting data.
+Good next contributions are concrete: a complete chapter with independently checked answers, a synthetic fixture that exposes a mistaken assumption, or a reproducible fix for an open runtime issue. Keep new chapters unpublished until their media and acceptance checks are ready. An outline is useful planning; it isn't a delivered lesson.
 
-Current mutation-state comparison is complete within a 10,000-row/8 MB bound and fails rather than accepting truncated state. Larger write profiles still require streaming comparison before delivery.
-
-## Authored catalog
-
-Rust embeds contiguous `course/chapterNN.json` files at build time, starting at `01` and ending no later than `84`. Adding the next authored file requires no runner source-list edit. Malformed names, missing numbers and symlinked chapter files fail the build. Runtime validation still requires six exercises, valid identifiers and a published introductory chapter.
-
-Keep new chapters unpublished until their narrated media and acceptance gates pass. The current narration/render scripts produce chapter 1; adding catalog content does not generate another chapter's video or scene.
-
-## Review
-
-Each completed phase receives a read-only Claude review. Review findings, evidence and unavailable/time-out results belong in `docs/reviews/` and the progress ledger. Do not mark a phase complete solely because tests or a chapter outline exist.
+This is a local development artifact, not a signed public release. Distribution still needs platform packaging, dependency notices, Remotion eligibility and narration-rights clearance. Those records live in [docs/LICENSING.md](docs/LICENSING.md).
