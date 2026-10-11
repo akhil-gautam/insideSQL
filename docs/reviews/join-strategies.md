@@ -1,0 +1,11 @@
+# Join strategies review — 2026-10-11
+
+Scope: unpublished chapter 9, closed read-only join_orders fixture, independent raw-row oracles and real PostgreSQL assessment/reset/permission checks. Reviewed source range: 8f483e4..84f00c0.
+
+One fresh local read-only reviewer inspected the plan, spec, diff, SQL references, fixture metadata, tests and delivery notes. No Critical, Important or Minor findings. They confirmed preserved identities and unknown amounts, correct outer counts, existence and nullable-key absence semantics, physical duplicate multiplicity, and independent child rollups. They did not rerun lengthy tests or perform external source validation.
+
+The reviewer explicitly set aside strict learner OID enforcement, later delivery/profile/GUI/Claude/whole-course gates and hardware-wide performance guarantees. Disposition: retain existing numeric-compatible grading while checking exact reference OIDs; retain all delivery gates as open; report local observations without universal performance claims. No production grading policy changed, no named-path/time gate was added, and no media was published.
+
+Two new PostgreSQL tests initially failed on unknown fixture/missing chapter. After implementation, an added exact-type assertion failed on SUM(bigint) returning numeric instead of the declared bigint quantity. References now sum the integer quantity; all six references match exact expected OIDs and independently calculated complete reports on three variants. Six Analyze+Check paths and seven measured wrong reports are tested. Cold orders include missing children, repeated children and both known/unknown totals; inactive customers remain at zero. Three validated foreign keys and nine valid indexes, deterministic fixture reconstruction, SELECT-only permissions, reset and assessment cleanup are verified.
+
+Verification: full core/PostgreSQL/catalog 34/34, frontend 16/16 and browser 7/7 pass (57 total); production/native --no-bundle builds pass. The full Rust suite completed successfully, including 23 library, three build/catalog, six progress and two runtime tests. Source/diff review is clean. Native GUI remains locked, and automatic approval review blocks source export to Anthropic pending specific approval. No source was sent. This local source review does not satisfy external phase acceptance or complete the full course goal.

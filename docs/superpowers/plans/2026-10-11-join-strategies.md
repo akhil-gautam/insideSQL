@@ -28,7 +28,7 @@
 - [x] Compose read-only 100k-order fixture with customers, constrained children, teaching cases and metadata. Verify counts/hot shares/foreign keys/indexes/determinism/permissions on all variants.
 - [x] Author six ordered contracts: cold-customer order/name join; all-customer paid summaries; scalar paid orders with qualifying-line existence; hot paid orders without captured payments grouped by UTC date; paid SKU line totals; cold-order independent line/payment rollups.
 - [x] Independently derive complete typed results from raw base rows for every variant; verify measured grain, Explain separation, current Analyze+Check, wrong reports, reset and assessment cleanup. Inspect nested-loop/hash/merge alternatives in test-owned sessions only; require no particular strategy from learners.
-- [ ] Run focused and full core/frontend/browser suites plus production/native --no-bundle builds; obtain one fresh read-only review, resolve material findings, update notes and commit.
+- [x] Run focused and full core/frontend/browser suites plus production/native --no-bundle builds; obtain one fresh read-only review, resolve material findings, update notes and commit.
 
 ## Ledger
 
@@ -38,3 +38,8 @@
 - Ruling: algorithm comparisons use isolated test session settings, not a named-node grading rule — verifies teaching alternatives without turning planner choices into correctness requirements; hardware-performance calibration remains separate.
 - Pre-flight: fixture enum/source composition supplies chapter9 and create_lab; catalog supplies schema/editor. Both consumers use closed identifiers and existing SELECT-only grants. No production interface change required.
 - Native GUI remains locked; Claude source-export approval is pending. No new video publication.
+
+- Completion evidence: initial two real-PG failures were observed; exact-type regression was also RED→GREEN. Full core 34/34, frontend 16/16 and browser 7/7 pass (57 total). Production/native --no-bundle builds pass. Fresh local review of 8f483e4..84f00c0 has no findings; docs/reviews/join-strategies.md records review scope and all explicitly set-aside gates. Course goal remains active; this is an unpublished authored draft.
+- Final ruling: retain established numeric-compatible learner grading while exact reference OIDs are checked — equivalent numeric values remain accepted — passing does not promise exact learner OIDs.
+- Final ruling: larger profiles, delivered media, native GUI, external Claude acceptance and whole-course completion stay open — this slice is an unpublished draft — it does not constitute chapter delivery or release acceptance.
+- Final ruling: report observed fixture sizes/timings without hardware-wide guarantees — these verify local populations and contracts — runtime resource guards and hardware calibration remain outstanding.
