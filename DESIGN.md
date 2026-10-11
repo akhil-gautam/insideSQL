@@ -177,6 +177,8 @@ The workbench is chiefly flat: borders, pale header fills and white surfaces sep
 
 Parser node collars, mounts and screws give the syntax tree physical structure. Planner route pods, pins and selector housing give alternate paths mechanical depth. Camera inspection dims unselected material and highlights the selected chamber without replacing the scene.
 
+The depth pass adds bevelled front/back flanges, toothed bezels, bolted cutaway jackets and cooling fins to each chamber. SQL guide rails and contact traces, geared syntax collars, catalog drawer handles/backplanes, rewrite gate teeth, planner cooling ribs/gears and heap-board connectors supply distinct internal detail. Feed wafers, syntax cores, catalog drawers, rewrite gates, selector gears and the executor read head use the same deterministic frame clock. Settled inspection isolates the chosen chamber; Overview restores its neighbours and connecting rails.
+
 **The Illustrated Evidence Rule.** Keep the “Illustrated mechanism” label visible. Geometry, signal packets and camera motion do not represent a measured PostgreSQL trace.
 
 Camera transitions use Anime.js outExpo across 1.6 seconds. Theatre supplies seekable progression; interactive controls can pause and reduced motion settles inspection immediately. Remotion supplies the sole video frame clock. These extension tokens are recorded in the sidecar.

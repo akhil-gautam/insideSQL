@@ -2,12 +2,13 @@ import * as T from 'three';
 import type {enginePose} from './engineMotion';
 type Pose=ReturnType<typeof enginePose>;
 type Label={text:string;position:T.Vector3;layer:number};
+type Motion={object:T.Object3D;axis:'x'|'y'|'z';origin:number;amplitude:number;offset:number};
 const graphite='#4c4946',edge='#161312',copper='#ffc59e',steel='#8b8179';
 
 export function buildDatabaseEngine(){
  const scene=new T.Scene();scene.background=new T.Color('#201e1d');
  const assembly=new T.Group();scene.add(assembly);
- const layers:T.Group[]=[];const accents:T.MeshStandardMaterial[]=[];const rotors:T.Object3D[]=[];const signals:T.Mesh[]=[];const labels:Label[]=[];
+ const layers:T.Group[]=[];const accents:T.MeshStandardMaterial[]=[];const rotors:T.Object3D[]=[];const signals:T.Mesh[]=[];const labels:Label[]=[];const motions:Motion[]=[];
  const ink=new T.LineBasicMaterial({color:edge,transparent:true,opacity:.75});
  const body=new T.MeshStandardMaterial({color:graphite,roughness:.64,metalness:.25});
  const dark=new T.MeshStandardMaterial({color:'#292624',roughness:.76,metalness:.15});
@@ -19,6 +20,12 @@ export function buildDatabaseEngine(){
  }
  function block(parent:T.Object3D,size:number[],position:number[],material:T.Material=body){return solid(parent,new T.BoxGeometry(...size as [number,number,number]),position,material,true);}
  function ring(parent:T.Object3D,radius:number,tube:number,x:number,material:T.Material=body){const m=solid(parent,new T.TorusGeometry(radius,tube,5,64),[x,0,0],material,true);m.rotation.y=Math.PI/2;return m;}
+ function flange(parent:T.Object3D,radius:number,x:number){
+  const shape=new T.Shape();shape.absarc(0,0,radius,0,Math.PI*2,false);
+  const opening=new T.Path();opening.absarc(0,0,radius-.18,0,Math.PI*2,true);shape.holes.push(opening);
+  const m=solid(parent,new T.ExtrudeGeometry(shape,{depth:.12,bevelEnabled:true,bevelSegments:1,steps:1,bevelSize:.018,bevelThickness:.018,curveSegments:32}),[x-.06,0,0],body,true);m.rotation.y=Math.PI/2;
+ }
+ function move(object:T.Object3D,axis:'x'|'y'|'z',amplitude:number,offset:number){motions.push({object,axis,origin:object.position[axis],amplitude,offset});}
  function wire(parent:T.Object3D,points:number[][],material:T.Material=metal,radius=.018){
   const path=new T.CatmullRomCurve3(points.map(p=>new T.Vector3(...p as [number,number,number])));
   return solid(parent,new T.TubeGeometry(path,24,radius,5,false),[0,0,0],material);
@@ -33,6 +40,15 @@ export function buildDatabaseEngine(){
   const layer=new T.Group();layer.position.x=(i-2.5)*2.35;layer.name=['SQL token assembly','Parser syntax tree','Analyzer catalog banks','Rewriter expansion gates','Planner path selector','Executor heap and buffers'][i];layers.push(layer);assembly.add(layer);
   const accent=new T.MeshStandardMaterial({color:copper,roughness:.4,metalness:.3,emissive:copper,emissiveIntensity:.16});accents.push(accent);
   const radius=[1.2,1.37,1.55,1.3,1.65,1.5][i];
+  for(const side of [-1,1]){
+   flange(layer,radius+.1,side*.7);
+   ring(layer,radius+.12,.025,side*.78,metal);
+   repeatAround(layer,48,radius+.08,side*.64,new T.BoxGeometry(.18,.065,.095),dark);
+   repeatAround(layer,12,radius-.015,side*.81,new T.CylinderGeometry(.045,.045,.06,6).rotateZ(Math.PI/2),metal);
+  }
+  // A partial jacket leaves the teaching structures exposed through a cutaway.
+  const jacket=solid(layer,new T.CylinderGeometry(radius+.035,radius+.035,1.2,32,1,true,Math.PI*.7,Math.PI*.85),[0,0,0],body,true);jacket.rotation.z=Math.PI/2;
+  for(let fin=0;fin<6;fin++)ring(layer,radius+.045,.014,-.28+fin*.11,dark);
   ring(layer,radius,.11,-.43);ring(layer,radius,.11,.43);ring(layer,radius+.035,.024,-.53,accent);
   repeatAround(layer,[24,8,16,12,8,20][i],radius,0,new T.BoxGeometry(.72,.11,.075),dark);
   repeatAround(layer,16,radius+.02,.48,new T.CylinderGeometry(.04,.04,.09,6),metal);
@@ -42,16 +58,23 @@ export function buildDatabaseEngine(){
  // Each chamber carries different structures: the casing is only the visual metaphor.
  const sql=layers[0];
  for(let row=0;row<6;row++){
-  block(sql,[.68,.11,1.6],[0,.85-row*.31,0],row===0?accents[0]:metal);
-  for(let cell=0;cell<3+(row%3);cell++)block(sql,[.16,.09,.18],[.41,.85-row*.31,-.62+cell*.29],row%2===0?dark:body);
+  const wafer=new T.Group();wafer.position.y=.85-row*.31;sql.add(wafer);move(wafer,'x',.1,row*.65);
+  block(wafer,[.68,.11,1.6],[0,0,0],row===0?accents[0]:metal);
+  for(let cell=0;cell<3+(row%3);cell++){
+   block(wafer,[.16,.09,.18],[.41,0,-.62+cell*.29],row%2===0?dark:body);
+   for(let trace=0;trace<3;trace++)block(wafer,[.018,.008,.13],[.505,-.027+trace*.027,-.62+cell*.29],accents[0]);
+  }
+  block(sql,[1.18,.045,.045],[0,.85-row*.31,-.95],dark);block(sql,[1.18,.045,.045],[0,.85-row*.31,.95],dark);
  }
  tag('SELECT  id, total',0,[.6,1.05,0]);tag('WHERE  status = \'paid\'',0,[.6,.07,0]);tag('ORDER BY  id',0,[.6,-.82,0]);
  const parser=layers[1];
  const tree=[[0,1.03,0],[0,.35,-.65],[0,.35,.65],[0,-.45,-.95],[0,-.45,-.35],[0,-.45,.35],[0,-.45,.95]];
  for(let n=0;n<tree.length;n++){
-  solid(parser,new T.OctahedronGeometry(n===0?.21:.14),tree[n],n===0?accents[1]:metal);
+  const node=solid(parser,new T.OctahedronGeometry(n===0?.21:.14),tree[n],n===0?accents[1]:metal);move(node,'x',.06,n*.7);
   const mount=new T.Group();mount.position.set(...tree[n] as [number,number,number]);parser.add(mount);
   ring(mount,n===0?.28:.21,.045,-.12,metal);block(mount,[.28,.1,.1],[.12,0,0],dark);
+  ring(mount,n===0?.31:.24,.023,.18,dark);
+  repeatAround(mount,12,n===0?.3:.23,-.2,new T.BoxGeometry(.08,.025,.04),dark);
   for(let screw=0;screw<3;screw++){const a=screw*Math.PI*2/3;block(mount,[.09,.035,.035],[-.17,Math.cos(a)*.2,Math.sin(a)*.2],body);}
   if(n>0){const parent=n<3?0:n<5?1:2;wire(parser,[tree[parent],[.12,(tree[parent][1]+tree[n][1])/2,tree[n][2]],tree[n]],accents[1],.024);}
  }
@@ -59,15 +82,23 @@ export function buildDatabaseEngine(){
  tag('SelectStmt',1,[.35,1.34,0]);tag('targetList',1,[.35,.35,-.95]);tag('whereClause',1,[.35,.35,.95]);tag('ColumnRef / A_Expr',1,[.35,-.87,0]);
  const analyzer=layers[2];
  for(let bank=0;bank<3;bank++){
-  block(analyzer,[.11,1.85,.64],[-.23+bank*.26,0,-.85+bank*.85],dark);
-  for(let row=0;row<7;row++)for(let col=0;col<2;col++)block(analyzer,[.15,.12,.2],[-.39+bank*.26,.77-row*.25,-1.02+bank*.85+col*.32],(row+col)%4===0?accents[2]:metal);
+  const drawer=new T.Group();drawer.position.set(-.23+bank*.26,0,-.85+bank*.85);analyzer.add(drawer);move(drawer,'x',.08,bank*1.1);
+  block(drawer,[.32,1.85,.64],[0,0,0],dark);
+  for(let row=0;row<7;row++)for(let col=0;col<2;col++){
+   block(drawer,[.15,.12,.2],[-.24,.77-row*.25,-.17+col*.32],(row+col)%4===0?accents[2]:metal);
+   block(drawer,[.035,.035,.13],[-.33,.77-row*.25,-.17+col*.32],body);
+  }
+  for(let slot=0;slot<10;slot++)block(drawer,[.025,.04,.49],[.18,-.8+slot*.175,0],metal);
+  wire(analyzer,[[-.5,-1.04,-.85+bank*.85],[.25,-1.22,-.85+bank*.85],[.65,-1.22,0]],metal,.026);
   wire(analyzer,[[.4,.85,-.85+bank*.85],[.65,1.24,-.85+bank*.85],[.65,1.24,0]],accents[2]);
  }
  tag('pg_class',2,[.8,1.12,-1]);tag('pg_attribute',2,[.8,-1.05,0]);tag('pg_type',2,[.8,1.12,1]);
  const rewriter=layers[3];
  for(let gate=0;gate<3;gate++){
   const frame=new T.Group();frame.position.x=(gate-1)*.38;rewriter.add(frame);
+  rotors.push(frame);
   ring(frame,.84,.08,0,gate===1?accents[3]:metal);
+  ring(frame,.96,.035,-.07,dark);repeatAround(frame,32,.94,.02,new T.BoxGeometry(.1,.075,.075),metal);
   for(let n=0;n<8;n++){const a=n*Math.PI/4;const vane=block(frame,[.15,.23,.13],[0,Math.cos(a)*.78,Math.sin(a)*.78],dark);vane.rotation.x=a;}
  }
  for(let track=0;track<4;track++){
@@ -83,11 +114,17 @@ export function buildDatabaseEngine(){
   for(let step=0;step<2;step++){
    const t=.34+step*.3;const pod=block(route,[.38,.3,.36],[-.66+t*1.2,y*t,z*t],dark);
    block(pod,[.045,.19,.25],[-.21,0,0],branch===0?accents[4]:metal);
+   for(let rib=0;rib<5;rib++)block(pod,[.025,.32,.37],[-.12+rib*.055,0,0],metal);
    for(let pin=0;pin<3;pin++)block(pod,[.09,.025,.07],[-.25,-.07+pin*.07,0],body);
   }
   for(let n=0;n<4;n++)block(route,[.08,.035,.22],[.45+n*.07,y+.19,z],dark);
  }
  const selector=solid(planner,new T.CylinderGeometry(.36,.36,.3,8),[-.6,0,0],dark,true);selector.rotation.z=Math.PI/2;
+ move(selector,'x',.055,1.4);
+ for(let wheel=0;wheel<2;wheel++){
+  const hub=new T.Group();hub.position.x=-.58+wheel*.22;planner.add(hub);rotors.push(hub);
+  ring(hub,.46,.035,0,metal);repeatAround(hub,24,.46,0,new T.BoxGeometry(.06,.06,.09),dark);
+ }
  ring(planner,.38,.045,-.78,metal);
  repeatAround(planner,3,1.67,0,new T.BoxGeometry(.95,.25,.4),dark);
  solid(planner,new T.IcosahedronGeometry(.3,0),[-.6,0,0],accents[4]);
@@ -95,8 +132,13 @@ export function buildDatabaseEngine(){
  const executor=layers[5];
  for(let page=0;page<5;page++){
   const board=block(executor,[.13,1.65,1.65],[-.48+page*.22,0,0],dark);
+  move(board,'x',.04,page*.8);
+  block(board,[.02,.1,1.58],[-.095,.76,0],metal);
+  for(let pin=0;pin<12;pin++)block(board,[.05,.045,.04],[-.07,-.87,-.7+pin*.125],metal);
   for(let row=0;row<4;row++)for(let slot=0;slot<4;slot++)block(board,[.08,.22,.24],[-.12,.57-row*.36,-.56+slot*.36],(row+slot+page)%5===0?accents[5]:body);
  }
+ const readHead=new T.Group();executor.add(readHead);move(readHead,'y',.56,0);
+ block(readHead,[.11,.035,1.45],[-.73,0,0],accents[5]);wire(executor,[[-.72,-.9,-.82],[-.72,.9,-.82]],metal,.025);
  for(let n=0;n<4;n++){const a=n*Math.PI/2;wire(executor,[[.6,Math.cos(a)*.85,Math.sin(a)*.85],[1,Math.cos(a)*.65,Math.sin(a)*.65],[1.35,Math.cos(a)*.35,Math.sin(a)*.35]],accents[5]);}
  tag('buffer page',5,[.85,1.22,0]);tag('visible tuples → filter',5,[.85,-1.2,0]);
  const context=new T.Group();assembly.add(context);
@@ -115,7 +157,16 @@ export function buildDatabaseEngine(){
   }});
   return [...copies.values()].map(material=>({material,color:material.color.clone()}));
  });
- return {scene,assembly,layers,accents,rotors,signals,labels,layerMaterials,context};
+ return {scene,assembly,layers,accents,rotors,signals,labels,layerMaterials,context,motions};
+}
+
+export function updateDatabaseEngine(world:ReturnType<typeof buildDatabaseEngine>,pose:Pose){
+ for(let i=0;i<world.rotors.length;i++)world.rotors[i].rotation.x=pose.seconds*(i%2===0?.12:-.08);
+ for(const motion of world.motions)motion.object.position[motion.axis]=motion.origin+Math.sin(pose.seconds*.85+motion.offset)*motion.amplitude;
+ for(let i=0;i<world.signals.length;i++){
+  const phase=(pose.seconds*.14+i/world.signals.length)%1;
+  world.signals[i].position.set(-7.2+phase*14.7,Math.cos(i%3/3*Math.PI*2)*.47,Math.sin(i%3/3*Math.PI*2)*.47);
+ }
 }
 
 export function createDatabaseRenderer(canvas:HTMLCanvasElement,labelRoot:HTMLDivElement,synchronize=false){
@@ -139,16 +190,14 @@ export function createDatabaseRenderer(canvas:HTMLCanvasElement,labelRoot:HTMLDi
   camera.position.copy(target).add(new T.Vector3(-11+pose.orbit*12,6,17));camera.lookAt(target);
   world.assembly.rotation.x=pose.orbit;world.assembly.rotation.z=Math.max(0,Math.min(1,(1.4-aspect)/.4))*.78*(1-focus);world.context.scale.x=spacing/2.35;
   for(let i=0;i<6;i++){
+   world.layers[i].visible=focus<.98||i===pose.stage||(pose.blend<.98&&i===pose.previous);
    world.layers[i].position.x=(i-2.5)*spacing*pose.spread;
    world.layers[i].position.y=i===pose.stage?.14:0;
    world.accents[i].emissiveIntensity=i===pose.stage?.32:.04;
    for(const {material,color}of world.layerMaterials[i])material.color.copy(color).multiplyScalar(i===pose.stage?1:1-.7*focus);
-   world.rotors[i].rotation.x=pose.seconds*(i%2===0?.12:-.08);
   }
-  for(let i=0;i<world.signals.length;i++){
-   const packet=world.signals[i];const phase=(pose.seconds*.14+i/world.signals.length)%1;
-   packet.position.set(-7.2+phase*14.7,Math.cos(i%3/3*Math.PI*2)*.47,Math.sin(i%3/3*Math.PI*2)*.47);
-  }
+  world.context.visible=focus<.5;
+  updateDatabaseEngine(world,pose);
   renderer.render(world.scene,camera);
   for(const {element,label}of annotations){
    element.style.display=label.layer===pose.stage?'block':'none';if(label.layer!==pose.stage)continue;

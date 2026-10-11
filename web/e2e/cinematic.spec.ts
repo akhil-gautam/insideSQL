@@ -13,6 +13,8 @@ test('inspect all six cinematic layers, pause, responsive framing and graphics f
   await expect(page.getByRole('img',{name:`SQL journey: ${stage} is highlighted`})).toBeVisible();
   // Resume just long enough for the authored camera move, then hold the inspection.
   await page.getByRole('button',{name:'Resume motion',exact:true}).click();await page.waitForTimeout(1800);await page.getByRole('button',{name:'Pause motion',exact:true}).click();
+  const held=await page.locator('canvas').first().screenshot();await page.waitForTimeout(150);
+  expect((await page.locator('canvas').first().screenshot()).equals(held)).toBe(true);
   await page.locator('.journey-scene').first().screenshot({path:`${output}/${stage.replace(' ','-').toLowerCase()}-desktop.png`});
  }
  await page.screenshot({path:`${output}/workbench-desktop.png`,fullPage:true});expect(errors).toEqual([]);
@@ -20,6 +22,8 @@ test('inspect all six cinematic layers, pause, responsive framing and graphics f
  await expect(small.getByText('Assembling the engine…')).toHaveCount(0);await expect(small.getByRole('button',{name:'Reduced motion'})).toBeDisabled();
  await small.locator('.journey-scene').first().screenshot({path:`${output}/overview-mobile.png`});await small.getByRole('button',{name:'Parser',exact:true}).click();
  await small.locator('.journey-scene').first().screenshot({path:`${output}/parser-mobile.png`});await small.screenshot({path:`${output}/workbench-mobile.png`,fullPage:true});
+ const still=await small.locator('canvas').first().screenshot();await small.waitForTimeout(150);
+ expect((await small.locator('canvas').first().screenshot()).equals(still)).toBe(true);
  expect(await small.evaluate(()=>document.documentElement.scrollWidth<=window.innerWidth)).toBe(true);await mobile.close();
  await page.locator('canvas').first().evaluate(canvas=>canvas.dispatchEvent(new Event('webglcontextlost',{cancelable:true})));
  await expect(page.getByText('The 3D view lost its graphics context.',{exact:false})).toBeVisible();await page.getByRole('button',{name:'Analyzer',exact:true}).click();await expect(page.getByText('Names acquire meaning.')).toBeVisible();
